@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FixAI — Admin</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">⚙</span> Fix<span style="color:var(--primary)">AI</span></div>
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+    <button class="icon-btn" id="langBtn" onclick="toggleLang()">🌐 <span id="langLabel"></span></button>
+    <button class="icon-btn" onclick="loadNotifications()">🔔 <span id="bellCount" class="bell-count"></span></button>
+    <button class="icon-btn" onclick="logout()">↩ Logout</button>
+  </div>
+</header>
+
+<section id="dash-admin" class="dashboard show">
+  <aside class="sidebar">
+    <button class="nav-item active" data-panel="a-overview" onclick="goPanel('a-overview');loadAll()">📊 Overview</button>
+    <button class="nav-item" data-panel="a-complaints" onclick="goPanel('a-complaints');loadAll()">📋 All Complaints</button>
+    <button class="nav-item" data-panel="a-apps" onclick="goPanel('a-apps');loadAll()">📨 Service_Provider Applications</button>
+    <button class="nav-item" data-panel="a-chat" onclick="goPanel('a-chat');fillChatSelect()">💬 Chat & Negotiate</button>
+    <button class="nav-item" data-panel="a-payments" onclick="goPanel('a-payments');loadAll()">💳 Payments</button>
+
+    <!-- This tab is visible only to the owner -->
+    <button class="nav-item hidden" id="nav-admins" data-panel="a-admins" onclick="goPanel('a-admins');loadAdmins()">👑 Admins (Create Admin)</button>
+
+   <div class="user-chip">
+
+  <div
+    id="a-profile-picture"
+    style="
+      width:52px;
+      height:52px;
+      border-radius:50%;
+      overflow:hidden;
+      margin-bottom:8px;
+      background:var(--primary-soft);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      cursor:pointer;
+    "
+    onclick="openProfilePicturePicker()"
+    title="Change profile picture"
+  >
+    👤
+  </div>
+
+  <b id="a-user"></b>
+
+  <div class="muted" id="a-email"></div>
+
+  <button
+    class="btn"
+    type="button"
+    style="margin-top:8px;font-size:12px"
+    onclick="openProfilePicturePicker()"
+  >
+    📷 Change Photo
+  </button>
+
+  <button
+    class="btn"
+    id="remove-profile-picture-btn"
+    type="button"
+    style="margin-top:5px;font-size:12px;display:none"
+    onclick="removeProfilePicture()"
+  >
+    🗑 Remove Photo
+  </button>
+
+  <input
+    type="file"
+    id="profile-picture-input"
+    accept="image/jpeg,image/png,image/webp"
+    style="display:none"
+    onchange="uploadProfilePicture(event)"
+  >
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="panel show" id="panel-a-overview">
+      <div class="page-head">
+        <div>
+          <h2>Overview</h2>
+          <p>Get a quick overview of the entire platform.</p>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="num" id="ov-total">0</div>
+          <div class="lbl">Total Complaints</div>
+        </div>
+
+        <div class="stat">
+          <div class="num" id="ov-pending">0</div>
+          <div class="lbl">Pending</div>
+        </div>
+
+        <div class="stat">
+          <div class="num" id="ov-progress">0</div>
+          <div class="lbl">In Progress</div>
+        </div>
+
+        <div class="stat">
+          <div class="num" id="ov-completed">0</div>
+          <div class="lbl">Completed</div>
+        </div>
+
+        <div class="stat">
+          <div class="num" id="ov-paid">0</div>
+          <div class="lbl">Paid</div>
+        </div>
+
+        <div class="stat">
+          <div class="num" id="ov-Service_Providers">0</div>
+          <div class="lbl">Service_Providers</div>
+        </div>
+
+        <div class="stat">
+          <div class="num" id="ov-apps">0</div>
+          <div class="lbl">Pending Applications</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent Complaints</h3>
+        <div id="a-recent"></div>
+      </div>
+
+      <!-- Owner welcome message -->
+      <div class="card hidden" id="owner-hint" style="border:1px dashed var(--primary);background:var(--primary-soft)">
+        <h3 style="color:var(--primary)">👑 Welcome, Owner!</h3>
+        <p class="muted" style="font-size:13px;line-height:1.6">
+          You are the owner of FixAI. Use <b>“Admins (Create Admin)”</b> in the left sidebar to create a new admin account.
+          The login credentials will be sent to the admin's email, and you will also receive a notification. 🔔
+        </p>
+      </div>
+    </div>
+
+
+    <div class="panel" id="panel-a-complaints">
+      <div class="page-head">
+        <div>
+          <h2>All Complaints</h2>
+          <p>Track, assign, and manage payments for all complaints from one place.</p>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <select id="a-filter" onchange="renderComplaints()">
+          <option value="all">All</option>
+          <option value="pending">Pending</option>
+          <option value="applied">Applied</option>
+          <option value="assigned">Assigned</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="paid">Paid</option>
+        </select>
+
+        <input
+          class="search"
+          id="a-search"
+          placeholder="Search..."
+          oninput="renderComplaints()"
+        >
+      </div>
+
+      <div class="table-wrap card" style="padding:8px">
+        <table>
+          <thead>
+            <tr>
+              <th>Complaint</th>
+              <th>Status</th>
+              <th>Assigned To</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="a-complaints-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+
+    <div class="panel" id="panel-a-apps">
+      <div class="page-head">
+        <div>
+          <h2>Service_Provider Applications</h2>
+          <p>Review Service_Provider applications and accept, reject, or negotiate them.</p>
+        </div>
+      </div>
+
+      <div id="a-apps-list"></div>
+    </div>
+
+
+    <div class="panel" id="panel-a-chat">
+      <div class="page-head">
+        <div>
+          <h2>Chat & Negotiate</h2>
+          <p>Discuss pricing with Service_Provider staff and exchange contact details.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="field">
+          <label>Select a conversation</label>
+          <select id="a-chat-select" onchange="openAdminChat()"></select>
+        </div>
+
+        <div class="chat-box" id="a-chat-box"></div>
+
+        <div class="chat-input">
+          <input
+            id="a-chat-input"
+            placeholder="Type a message..."
+            onkeydown="if(event.key==='Enter')sendAdminChat()"
+          >
+          <button class="btn primary" onclick="sendAdminChat()">➤</button>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="panel" id="panel-a-payments">
+      <div class="page-head">
+        <div>
+          <h2>Payments</h2>
+          <p>Mark completed jobs as paid. FixAI receives 20% and Service_Provider receives 80% through the FixAI QR.</p>
+        </div>
+      </div>
+
+      <div id="a-pay-list"></div>
+    </div>
+
+
+    <div class="panel" id="panel-a-admins">
+      <div class="page-head">
+        <div>
+          <h2>👑 Admin Accounts</h2>
+          <p>Only the owner can create admin accounts here. Login credentials will be sent to the admin's email, and you will also receive a notification.</p>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:640px">
+        <h3>Create New Admin</h3>
+
+        <form onsubmit="return createAdmin(event)">
+          <div class="field">
+            <label>Admin Name</label>
+            <input id="ad-name" required>
+          </div>
+
+          <div class="field">
+            <label>Admin Email (FixAI will use this email)</label>
+            <input id="ad-email" type="email" required>
+          </div>
+
+          <div class="field">
+            <label>Phone</label>
+            <input id="ad-phone" type="tel">
+          </div>
+
+          <button class="btn-primary">Create Admin</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Provided Admin Emails</h3>
+        <div id="admins-list"></div>
+      </div>
+    </div>
+
+  </main>
+</section>
+
+
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script src="/js/app.js"></script>
+
+<script>
+const me = requireAuth(['admin', 'owner']); 
+
+$('#a-user').textContent = me.name; 
+$('#a-email').textContent = me.email;
+
+renderAdminProfilePicture(me);
+/* ==================== PROFILE PICTURE ==================== */
+
+function renderAdminProfilePicture(user) {
+
+  const box = $('#a-profile-picture');
+  const removeBtn = $('#remove-profile-picture-btn');
+
+  if (!box) return;
+
+  if (user && user.profile_picture) {
+
+    box.innerHTML = `
+      <img
+        src="${user.profile_picture}"
+        alt="Profile Picture"
+        style="
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          display:block;
+        "
+      >
+    `;
+
+    if (removeBtn) {
+      removeBtn.style.display = 'block';
+    }
+
+  } else {
+
+    box.innerHTML = '👤';
+
+    if (removeBtn) {
+      removeBtn.style.display = 'none';
+    }
+  }
+}
+
+
+function openProfilePicturePicker() {
+
+  const input = $('#profile-picture-input');
+
+  if (input) {
+    input.click();
+  }
+}
+
+
+async function uploadProfilePicture(event) {
+
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+
+    toast(
+      '❌ Please select a JPG, PNG, or WEBP image.',
+      'err'
+    );
+
+    event.target.value = '';
+    return;
+  }
+
+  /*
+   * 5 MB maximum file size
+   */
+  if (file.size > 5 * 1024 * 1024) {
+
+    toast(
+      '❌ Image must be smaller than 5 MB.',
+      'err'
+    );
+
+    event.target.value = '';
+    return;
+  }
+
+  try {
+
+    const reader = new FileReader();
+
+    reader.onload = async function () {
+
+      try {
+
+        const d = await api(
+          '/profile/picture',
+          {
+            method: 'PUT',
+            body: {
+              profile_picture: reader.result
+            }
+          }
+        );
+
+        if (d.user) {
+
+          me.profile_picture =
+            d.user.profile_picture || '';
+
+          renderAdminProfilePicture(me);
+
+        }
+
+        toast(
+          '✅ Profile picture updated successfully.'
+        );
+
+      } catch (e) {
+
+        toast(
+          '❌ ' + e.message,
+          'err'
+        );
+
+      }
+
+      event.target.value = '';
+    };
+
+    reader.readAsDataURL(file);
+
+  } catch (e) {
+
+    toast(
+      '❌ Unable to read the image.',
+      'err'
+    );
+
+    event.target.value = '';
+  }
+}
+
+
+async function removeProfilePicture() {
+
+  try {
+
+    const d = await api(
+      '/profile/picture',
+      {
+        method: 'PUT',
+        body: {
+          profile_picture: ''
+        }
+      }
+    );
+
+    if (d.user) {
+
+      me.profile_picture =
+        d.user.profile_picture || '';
+
+      renderAdminProfilePicture(me);
+
+    }
+
+    toast(
+      '✅ Profile picture removed successfully.'
+    );
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+$('#a-user').textContent = me.name;
+$('#a-email').textContent = me.email;
+
+
+/* ===== OWNER MODE: badge + Admins tab + welcome message ===== */
+
+if (me.role === 'owner') {
+
+  $('#nav-admins').classList.remove('hidden');
+
+  $('#a-user').insertAdjacentHTML(
+    'afterend',
+    ' <span class="pill" style="background:#fdf3e3;color:#d97706;">👑 OWNER</span>'
+  );
+
+  const hint = $('#owner-hint');
+
+  if (hint) {
+    hint.classList.remove('hidden');
+  }
+
+  // Open the Admins panel automatically when the owner logs in
+  goPanel('a-admins');
+  loadAdmins();
+
+} else {
+
+  // Keep the Admins tab hidden for normal admins
+  $('#nav-admins').classList.add('hidden');
+}
+
+
+let complaints = [], Service_Providers = [];
+
+
+async function loadAll() {
+
+  try {
+
+    const [st, cl, su] = await Promise.all([
+      api('/admin/stats'),
+      api('/complaints'),
+      api('/admin/Service_Providers')
+    ]);
+
+    complaints = cl.complaints;
+    Service_Providers = su.Service_Providers;
+
+    $('#ov-total').textContent = st.total;
+    $('#ov-pending').textContent = st.pending;
+    $('#ov-progress').textContent = st.progress;
+    $('#ov-completed').textContent = st.completed;
+    $('#ov-paid').textContent = st.paid;
+    $('#ov-Service_Providers').textContent = st.Service_Providers;
+    $('#ov-apps').textContent = st.applications;
+
+    $('#a-recent').innerHTML = complaints
+      .slice(0, 5)
+      .map(c => `
+        <div class="list-item">
+          <div class="info">
+            <div class="t">
+              ${esc(c.title)}
+              <span class="muted" style="font-weight:500">· ${c.ticket}</span>
+            </div>
+
+            <div class="s">
+              📍 ${esc(c.location)} · by
+              ${c.student ? esc(c.student.name) : ''}
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            ${statusPill(c.status)}
+            <button class="btn" onclick="viewAdmin(${c.id})">View</button>
+          </div>
+        </div>
+      `)
+      .join('');
+
+    renderComplaints();
+    renderApps();
+    renderPayments();
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+function renderComplaints() {
+
+  const f = $('#a-filter').value;
+  const q = $('#a-search').value.toLowerCase();
+
+  let list = complaints.filter(
+    c => f === 'all' || c.status === f
+  );
+
+  if (q) {
+
+    list = list.filter(c =>
+      (c.title + c.location + c.ticket)
+        .toLowerCase()
+        .includes(q)
+    );
+
+  }
+
+  $('#a-complaints-body').innerHTML = list.length
+
+    ? list.map(c => `
+      <tr>
+        <td>
+          <b>${esc(c.title)}</b>
+          <br>
+          <span class="muted" style="font-size:12px">
+            ${c.ticket} · 📍 ${esc(c.location)}
+          </span>
+        </td>
+
+        <td>${statusPill(c.status)}</td>
+
+        <td>
+          ${c.Service_Provider ? esc(c.Service_Provider.name) : '—'}
+        </td>
+
+        <td>
+          <div class="btn-row">
+
+            ${
+              ['pending', 'applied'].includes(c.status)
+                ? `<button class="btn primary" onclick="assignModal(${c.id})">Assign</button>`
+                : ''
+            }
+
+            ${
+              ['assigned', 'in_progress'].includes(c.status)
+                ? `<button class="btn" onclick="startAdminChat(${c.id})">💬</button>`
+                : ''
+            }
+
+            ${
+              c.status === 'completed'
+                ? `<button class="btn green" onclick="payModal(${c.id})">Pay 💳</button>`
+                : ''
+            }
+
+            <button class="btn" onclick="viewAdmin(${c.id})">
+              View
+            </button>
+
+          </div>
+        </td>
+      </tr>
+    `).join('')
+
+    : `
+      <tr>
+        <td colspan="4" class="muted" style="text-align:center;padding:30px">
+          No complaints found.
+        </td>
+      </tr>
+    `;
+}
+
+
+async function viewAdmin(id) {
+
+  try {
+
+    const d = await api('/complaints/' + id);
+    const c = d.complaint;
+
+    const imgs = c.images.length
+      ? `<div class="img-thumbs">
+          ${c.images.map(i => `<img src="${i}">`).join('')}
+        </div>`
+      : '';
+
+    const up = c.updates
+      .map(u => `
+        <div>
+          <b>${fmt(u.created_at)}</b>
+          ${esc(u.text)}
+        </div>
+      `)
+      .join('');
+
+    const sup = c.Service_Provider
+      ? `
+        <p class="muted" style="margin:10px 0">
+          🔧 <b>${esc(c.Service_Provider.name)}</b>
+          · 📞 ${esc(c.Service_Provider.phone)}
+          · ⭐ ${c.Service_Provider.avg_rating || '—'}/5
+          (${c.Service_Provider.rating_count})
+        </p>
+      `
+      : '';
+
+    openModal(`
+      <h3>
+        ${esc(c.title)}
+        <span class="muted" style="font-size:13px">
+          ${c.ticket}
+        </span>
+      </h3>
+
+      <p class="muted">
+        ${fmt(c.created_at)} · ${statusPill(c.status)}
+      </p>
+
+      <div class="muted" style="margin:12px 0">
+        ❓ ${esc(c.issue)}
+        <br>
+        📍 ${esc(c.location)}
+        <br>
+        ${esc(c.description)}
+      </div>
+
+      ${imgs}
+      ${sup}
+
+      <div class="timeline">
+        ${up}
+      </div>
+
+      <div style="margin-top:16px">
+        <button class="btn" onclick="closeModal()">
+          Close
+        </button>
+      </div>
+    `);
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+/* ===== ASSIGN Service_Provider ===== */
+
+function assignModal(id) {
+
+  const c = complaints.find(x => x.id === id);
+
+  if (!Service_Providers.length) {
+
+    toast('❌ No registered Service_Provider staff found.', 'err');
+    return;
+
+  }
+
+  const sorted = [...Service_Providers].sort(
+    (a, b) =>
+      (b.avg_rating || 0) - (a.avg_rating || 0) ||
+      b.experience - a.experience ||
+      a.charges - b.charges
+  );
+
+  const best = sorted[0];
+
+  openModal(`
+    <h3>Assign Service_Provider — ${c.ticket}</h3>
+
+    <p class="muted">
+      ${esc(c.title)}
+    </p>
+
+    <div class="info-box" style="margin-top:12px">
+      ⭐ Recommended: <b>${esc(best.name)}</b>
+      — ${best.experience || 0} years of experience
+      · ₹${best.charges || 0}/job
+      · Rating ${best.avg_rating || '—'}/5
+    </div>
+
+    <div class="field">
+      <label>Choose Service_Provider</label>
+
+      <select id="assign-select">
+        ${
+          sorted
+            .map((s, i) => `
+              <option value="${s.id}">
+                ${esc(s.name)}
+                — ${s.experience || 0} years
+                · ₹${s.charges || 0}
+                · ⭐${s.avg_rating || '—'}
+                ${s.phone ? '📞' + esc(s.phone) : ''}
+                ${i === 0 ? ' (Recommended)' : ''}
+              </option>
+            `)
+            .join('')
+        }
+      </select>
+    </div>
+
+    <button class="btn-primary" onclick="doAssign(${id})">
+      Assign
+    </button>
+  `);
+}
+
+
+async function doAssign(id) {
+
+  try {
+
+    const d = await api('/admin/assign', {
+      method: 'POST',
+      body: {
+        complaint_id: id,
+        Service_Provider_id: +$('#assign-select').value
+      }
+    });
+
+    toast('✅ ' + d.message);
+    closeModal();
+    loadAll();
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+/* ===== APPLICATIONS ===== */
+
+async function renderApps() {
+
+  try {
+
+    const d = await api('/applications');
+
+    $('#a-apps-list').innerHTML = d.applications.length
+
+      ? d.applications.map(a => {
+
+          const c = complaints.find(
+            x => x.id === a.complaint_id
+          );
+
+          const sp = Service_Providers.find(
+            x => x.id === a.Service_Provider_id
+          );
+
+          return `
+            <div class="list-item">
+
+              <div class="info">
+
+                <div class="t">
+                  ${c ? esc(c.title) : a.complaint_id}
+                  →
+                  <span style="color:var(--primary)">
+                    ${sp ? esc(sp.name) : ''}
+                  </span>
+                </div>
+
+                <div class="s">
+                  Skills: ${esc(a.skills)}
+                  · Quote: <b>₹${a.charge}</b>
+                  · ⭐ ${sp ? sp.avg_rating || '—' : '—'}/5
+                </div>
+
+                <div class="s muted">
+                  "${esc(a.note)}"
+                </div>
+
+                ${
+                  sp
+                    ? `
+                      <div class="tags">
+                        <span class="tag">
+                          📞 ${esc(sp.phone)}
+                        </span>
+                      </div>
+                    `
+                    : ''
+                }
+
+              </div>
+
+              <div class="btn-row">
+
+                <button
+                  class="btn green"
+                  onclick="respondApp(${a.id},'accept')"
+                >
+                  Accept & Assign
+                </button>
+
+                <button
+                  class="btn red"
+                  onclick="respondApp(${a.id},'reject')"
+                >
+                  Reject
+                </button>
+
+              </div>
+
+            </div>
+          `;
+
+        }).join('')
+
+      : `
+        <div class="card muted">
+          No pending applications.
+        </div>
+      `;
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+async function respondApp(id, action) {
+
+  try {
+
+    await api(
+      '/applications/' + id + '/respond',
+      {
+        method: 'POST',
+        body: { action }
+      }
+    );
+
+    toast('✅ Done');
+    loadAll();
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+/* ===== CHAT ===== */
+
+function fillChatSelect() {
+
+  const threads = complaints.filter(
+    c => c.assigned_to
+  );
+
+  $('#a-chat-select').innerHTML = threads.length
+
+    ? `
+      <option value="">
+        Select conversation...
+      </option>
+      ${
+        threads.map(c => `
+          <option value="${c.id}">
+            ${c.ticket} —
+            ${esc(c.title)}
+            (${c.Service_Provider ? esc(c.Service_Provider.name) : ''})
+          </option>
+        `).join('')
+      }
+    `
+
+    : `
+      <option value="">
+        No active assignments
+      </option>
+    `;
+}
+
+
+async function startAdminChat(id) {
+
+  $('#a-chat-select').value = id;
+  openAdminChat();
+
+}
+
+
+async function openAdminChat() {
+
+  const cid = +$('#a-chat-select').value;
+
+  if (!cid) {
+
+    $('#a-chat-box').innerHTML = `
+      <div class="muted" style="text-align:center;padding:30px">
+        Select a conversation
+      </div>
+    `;
+
+    return;
+  }
+
+  try {
+
+    const d = await api('/chat/' + cid);
+
+    $('#a-chat-box').innerHTML = d.messages.length
+
+      ? d.messages
+          .map(m => `
+            <div class="msg ${m.sender_id === me.id ? 'mine' : 'theirs'}">
+              ${esc(m.text)}
+              <small>${fmt(m.created_at)}</small>
+            </div>
+          `)
+          .join('')
+
+      : `
+        <div class="muted" style="text-align:center;padding:30px">
+          No messages yet 👋
+        </div>
+      `;
+
+    $('#a-chat-box').scrollTop =
+      $('#a-chat-box').scrollHeight;
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+async function sendAdminChat() {
+
+  const cid = +$('#a-chat-select').value;
+  const txt = $('#a-chat-input').value.trim();
+
+  if (!cid || !txt) return;
+
+  try {
+
+    await api('/chat/' + cid, {
+      method: 'POST',
+      body: { text: txt }
+    });
+
+    $('#a-chat-input').value = '';
+
+    openAdminChat();
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+/* ===== PAYMENTS ===== */
+
+function renderPayments() {
+
+  const list = complaints.filter(
+    c => ['completed', 'paid'].includes(c.status)
+  );
+
+  $('#a-pay-list').innerHTML = list.length
+
+    ? list.map(c => {
+
+        const amt = c.Service_Provider
+          ? Math.max(100, c.Service_Provider.charges)
+          : 500;
+
+        const fix = Math.round(amt * 0.2);
+        const share = amt - fix;
+
+        return `
+          <div class="list-item">
+
+            <div class="info">
+
+              <div class="t">
+                ${esc(c.title)}
+                <span class="muted" style="font-weight:500">
+                  · ${c.ticket}
+                </span>
+              </div>
+
+              <div class="s">
+                Service_Provider:
+                ${c.Service_Provider ? esc(c.Service_Provider.name) : '—'}
+                · Charge: ₹${amt}
+              </div>
+
+              ${
+                c.payment
+                  ? `
+                    <div class="s" style="margin-top:5px">
+                      ${statusPill('paid')}
+                      — FixAI ₹${c.payment.fixai_share}
+                      · Service_Provider ₹${c.payment.Service_Provider_share}
+                    </div>
+                  `
+                  : ''
+              }
+
+            </div>
+
+            ${
+              c.status === 'completed'
+                ? `
+                  <button
+                    class="btn green"
+                    onclick="payModal(${c.id})"
+                  >
+                    Pay via QR 💳
+                  </button>
+                `
+                : ''
+            }
+
+          </div>
+        `;
+
+      }).join('')
+
+    : `
+      <div class="card muted">
+        No completed jobs awaiting payment.
+      </div>
+    `;
+}
+
+
+function payModal(id) {
+
+  const c = complaints.find(
+    x => x.id === id
+  );
+
+  const amt = c.Service_Provider
+    ? Math.max(100, c.Service_Provider.charges)
+    : 500;
+
+  const fix = Math.round(amt * 0.2);
+  const share = amt - fix;
+
+  openModal(`
+    <h3>💳 Payment — ${c.ticket}</h3>
+
+    <p class="muted">
+      ${esc(c.title)}
+    </p>
+
+    <div class="qr-placeholder">
+      <div style="font-size:52px">
+        ◼️▫️◼️
+      </div>
+
+      <span
+        style="font-size:12px;font-weight:700;color:var(--primary)"
+      >
+        FixAI QR — Scan and Pay
+      </span>
+    </div>
+
+    <div class="pay-break">
+
+      <div>
+        <span>Job Charge</span>
+        <b>₹${amt}</b>
+      </div>
+
+      <div>
+        <span>FixAI Commission (20%)</span>
+        <b>₹${fix}</b>
+      </div>
+
+      <div class="total">
+        <span>Service_Provider Receives (80%)</span>
+        <b style="color:var(--green)">
+          ₹${share}
+        </b>
+      </div>
+
+    </div>
+
+    <button
+      class="btn-primary"
+      style="margin-top:14px"
+      onclick="markPaid(${id})"
+    >
+      Confirm Payment
+    </button>
+  `);
+}
+
+
+async function markPaid(id) {
+
+  try {
+
+    const d = await api(
+      '/payments/mark-paid',
+      {
+        method: 'POST',
+        body: {
+          complaint_id: id
+        }
+      }
+    );
+
+    toast(
+      '✅ Payment confirmed! FixAI ₹' +
+      d.fixai_share +
+      ' · Service_Provider ₹' +
+      d.Service_Provider_share
+    );
+
+    closeModal();
+    loadAll();
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+/* ===== OWNER: ADMIN MANAGEMENT ===== */
+
+async function loadAdmins() {
+
+  try {
+
+    const d = await api('/admin/admins');
+
+    $('#admins-list').innerHTML = d.admins.length
+
+      ? d.admins
+          .map(a => `
+            <div class="list-item">
+
+              <div class="info">
+
+                <div class="t">
+                  ${esc(a.name)}
+                </div>
+
+                <div class="s">
+                  📧 ${esc(a.email)}
+                  · 📞 ${esc(a.phone || '—')}
+                </div>
+
+              </div>
+
+              <span class="tag">
+                Created ${fmt(a.created_at)}
+              </span>
+
+            </div>
+          `)
+          .join('')
+
+      : `
+        <div class="muted">
+          No admin accounts have been created yet.
+        </div>
+      `;
+
+  } catch (e) {
+
+    toast('❌ ' + e.message, 'err');
+
+  }
+}
+
+
+async function createAdmin(e) {
+
+  e.preventDefault();
+
+  try {
+
+    const d = await api(
+      '/admin/create-admin',
+      {
+        method: 'POST',
+        body: {
+          name: $('#ad-name').value,
+          email: $('#ad-email').value,
+          phone: $('#ad-phone').value
+        }
+      }
+    );
+
+    toast('✅ ' + d.message);
+
+    $('#ad-name').value = '';
+    $('#ad-email').value = '';
+    $('#ad-phone').value = '';
+
+    loadAdmins();
+
+  } catch (err) {
+
+    toast('❌ ' + err.message, 'err');
+
+  }
+}
+
+
+loadAll();
+</script>
+
+</body>
+</html>

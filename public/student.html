@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FixAI — Student</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">⚙</span>
+    Fix<span style="color:var(--primary)">AI</span>
+  </div>
+
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+
+    <button class="icon-btn" id="langBtn" onclick="toggleLang()">
+      🌐 <span id="langLabel"></span>
+    </button>
+
+    <button class="icon-btn" onclick="logout()">↩ Logout</button>
+  </div>
+</header>
+
+
+<section id="dash-student" class="dashboard show">
+
+  <aside class="sidebar">
+
+    <button
+      class="nav-item active"
+      data-panel="s-raise"
+      onclick="goPanel('s-raise')"
+    >
+      📝 Raise Complaint
+    </button>
+
+    <button
+      class="nav-item"
+      data-panel="s-track"
+      onclick="goPanel('s-track');loadComplaints()"
+    >
+      📌 Track Complaint
+    </button>
+
+    <button
+      class="nav-item"
+      data-panel="s-history"
+      onclick="goPanel('s-history');loadComplaints()"
+    >
+      🗂️ History
+    </button>
+
+    <div class="user-chip">
+
+  <div
+    id="s-profile-picture"
+    style="
+      width:52px;
+      height:52px;
+      border-radius:50%;
+      overflow:hidden;
+      margin-bottom:8px;
+      background:var(--primary-soft);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      cursor:pointer;
+    "
+    onclick="openProfilePicturePicker()"
+    title="Change profile picture"
+  >
+    👤
+  </div>
+
+  <b id="s-user"></b>
+
+  <div class="muted" id="s-email"></div>
+
+  <button
+    class="btn"
+    type="button"
+    style="margin-top:8px;font-size:12px"
+    onclick="openProfilePicturePicker()"
+  >
+    📷 Change Photo
+  </button>
+
+  <button
+    class="btn"
+    id="remove-profile-picture-btn"
+    type="button"
+    style="margin-top:5px;font-size:12px;display:none"
+    onclick="removeProfilePicture()"
+  >
+    🗑 Remove Photo
+  </button>
+
+  <input
+    type="file"
+    id="profile-picture-input"
+    accept="image/jpeg,image/png,image/webp"
+    style="display:none"
+    onchange="uploadProfilePicture(event)"
+  >
+
+    </div>
+  </aside>
+
+
+  <main class="main">
+
+    <!-- RAISE COMPLAINT -->
+    <div class="panel show" id="panel-s-raise">
+
+      <div class="page-head">
+        <div>
+          <h2>Raise a Complaint</h2>
+          <p>
+            Describe the issue and we'll assign the right Service_Provider staff.
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:640px">
+
+        <form onsubmit="return submitComplaint(event)">
+
+          <div class="field">
+            <label>Title</label>
+            <input
+              id="c-title"
+              placeholder="e.g. Hostel Wi-Fi not working"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label>What's the issue?</label>
+            <input
+              id="c-issue"
+              placeholder="e.g. Internet / Electricity / Plumbing / AC"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label>Where's the issue?</label>
+            <input
+              id="c-location"
+              placeholder="e.g. Room 204, Boys Hostel"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label>Description</label>
+            <textarea
+              id="c-desc"
+              rows="4"
+              placeholder="Describe the issue in detail..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label>Add Pictures (optional)</label>
+
+            <input
+              type="file"
+              id="c-images"
+              accept="image/*"
+              multiple
+              onchange="previewImages(this)"
+            >
+
+            <div
+              class="img-thumbs"
+              id="c-preview"
+            ></div>
+          </div>
+
+          <button class="btn-primary">
+            Submit Complaint
+          </button>
+
+        </form>
+
+      </div>
+    </div>
+
+
+    <!-- TRACK COMPLAINT -->
+    <div class="panel" id="panel-s-track">
+
+      <div class="page-head">
+        <div>
+          <h2>Track Complaint</h2>
+          <p>
+            View the live status of your active complaints.
+          </p>
+        </div>
+      </div>
+
+      <div id="s-track-list"></div>
+
+    </div>
+
+
+    <!-- HISTORY -->
+    <div class="panel" id="panel-s-history">
+
+      <div class="page-head">
+        <div>
+          <h2>History</h2>
+          <p>
+            View your completed complaints and don't forget to rate the Service_Provider staff ⭐
+          </p>
+        </div>
+      </div>
+
+      <div id="s-history-list"></div>
+
+    </div>
+
+  </main>
+</section>
+
+
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+
+<script src="/js/app.js"></script>
+
+<script>
+
+const me = requireAuth(['student']); 
+
+$('#s-user').textContent = me.name; 
+$('#s-email').textContent = me.email;
+
+renderStudentProfilePicture(me);
+ 
+let all = [], pendingImages = [];
+
+
+/* ==================== PROFILE PICTURE ==================== */
+
+function renderStudentProfilePicture(user) {
+
+  const box = $('#s-profile-picture');
+  const removeBtn = $('#remove-profile-picture-btn');
+
+  if (!box) return;
+
+  if (user && user.profile_picture) {
+
+    box.innerHTML = `
+      <img
+        src="${user.profile_picture}"
+        alt="Profile Picture"
+        style="
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          display:block;
+        "
+      >
+    `;
+
+    if (removeBtn) {
+      removeBtn.style.display = 'block';
+    }
+
+  } else {
+
+    box.innerHTML = '👤';
+
+    if (removeBtn) {
+      removeBtn.style.display = 'none';
+    }
+
+  }
+}
+
+
+function openProfilePicturePicker() {
+
+  const input = $('#profile-picture-input');
+
+  if (input) {
+    input.click();
+  }
+
+}
+
+
+async function uploadProfilePicture(event) {
+
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ];
+
+
+  if (!allowedTypes.includes(file.type)) {
+
+    toast(
+      '❌ Please select a JPG, PNG, or WEBP image.',
+      'err'
+    );
+
+    event.target.value = '';
+    return;
+  }
+
+
+  /*
+   * Maximum 5 MB
+   */
+
+  if (file.size > 5 * 1024 * 1024) {
+
+    toast(
+      '❌ Image must be smaller than 5 MB.',
+      'err'
+    );
+
+    event.target.value = '';
+    return;
+  }
+
+
+  try {
+
+    const reader = new FileReader();
+
+
+    reader.onload = async function () {
+
+      try {
+
+        const d = await api(
+          '/profile/picture',
+          {
+            method: 'PUT',
+
+            body: {
+              profile_picture: reader.result
+            }
+          }
+        );
+
+
+        if (d.user) {
+
+          me.profile_picture =
+            d.user.profile_picture || '';
+
+          renderStudentProfilePicture(me);
+
+        }
+
+
+        toast(
+          '✅ Profile picture updated successfully.'
+        );
+
+
+      } catch (e) {
+
+        toast(
+          '❌ ' + e.message,
+          'err'
+        );
+
+      }
+
+
+      event.target.value = '';
+
+    };
+
+
+    reader.readAsDataURL(file);
+
+
+  } catch (e) {
+
+    toast(
+      '❌ Unable to read the image.',
+      'err'
+    );
+
+    event.target.value = '';
+
+  }
+
+}
+
+
+async function removeProfilePicture() {
+
+  try {
+
+    const d = await api(
+      '/profile/picture',
+      {
+        method: 'PUT',
+
+        body: {
+          profile_picture: ''
+        }
+      }
+    );
+
+
+    if (d.user) {
+
+      me.profile_picture =
+        d.user.profile_picture || '';
+
+      renderStudentProfilePicture(me);
+
+    }
+
+
+    toast(
+      '✅ Profile picture removed successfully.'
+    );
+
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+
+}
+
+async function loadComplaints() {
+
+  const d = await api('/complaints');
+
+  all = d.complaints;
+
+  const active = all.filter(
+    c => !['completed', 'paid'].includes(c.status)
+  );
+
+  const done = all.filter(
+    c => ['completed', 'paid'].includes(c.status)
+  );
+
+
+  $('#s-track-list').innerHTML =
+    active.length
+      ? active.map(cc).join('')
+      : '<div class="card muted">No active complaints. Raise a new one! 🚀</div>';
+
+
+  $('#s-history-list').innerHTML =
+    done.length
+      ? done.map(c => {
+
+          const rateBtn = c.rating
+            ? `<span class="tag">
+                ⭐ ${c.rating.rating}/5 — "${esc(c.rating.review)}"
+              </span>`
+            : `<button
+                class="btn primary"
+                onclick="rateModal(${c.id})"
+              >
+                Rate Service_Provider ⭐
+              </button>`;
+
+          return `
+            <div class="list-item">
+
+              <div class="info">
+
+                <div class="t">
+                  ${esc(c.title)}
+                  <span
+                    class="muted"
+                    style="font-weight:500"
+                  >
+                    · ${c.ticket}
+                  </span>
+                </div>
+
+                <div class="s">
+                  📍 ${esc(c.location)}
+                  · ${statusPill(c.status)}
+                </div>
+
+                <div class="s">
+                  Service_Provider:
+                  ${c.Service_Provider ? esc(c.Service_Provider.name) : 'Not assigned'}
+                  ${c.Service_Provider
+                    ? ' · 📞 ' + esc(c.Service_Provider.phone)
+                    : ''}
+                </div>
+
+                <div style="margin-top:6px">
+                  ${rateBtn}
+                </div>
+
+              </div>
+
+              <div class="btn-row">
+
+                <button
+                  class="btn"
+                  onclick="viewComplaint(${c.id})"
+                >
+                  View
+                </button>
+
+              </div>
+
+            </div>
+          `;
+
+        }).join('')
+      : '<div class="card muted">No completed complaints yet.</div>';
+
+
+  function cc(c) {
+
+    return `
+      <div class="list-item">
+
+        <div class="info">
+
+          <div class="t">
+            ${esc(c.title)}
+
+            <span
+              class="muted"
+              style="font-weight:500"
+            >
+              · ${c.ticket}
+            </span>
+          </div>
+
+          <div class="s">
+            📍 ${esc(c.location)}
+            · ${esc(c.issue)}
+          </div>
+
+          <div
+            class="s"
+            style="margin-top:4px"
+          >
+            ${statusPill(c.status)}
+
+            ${c.Service_Provider
+              ? ' · Assigned: ' + esc(c.Service_Provider.name)
+              : ''}
+          </div>
+
+        </div>
+
+        <div class="btn-row">
+
+          <button
+            class="btn"
+            onclick="viewComplaint(${c.id})"
+          >
+            View
+          </button>
+
+        </div>
+
+      </div>
+    `;
+  }
+}
+
+
+async function viewComplaint(id) {
+
+  try {
+
+    const d = await api('/complaints/' + id);
+
+    const c = d.complaint;
+
+
+    const imgs = c.images.length
+      ? `
+        <div class="img-thumbs">
+          ${c.images.map(i => `<img src="${i}">`).join('')}
+        </div>
+      `
+      : '';
+
+
+    const up = c.updates.map(u =>
+      `
+        <div>
+          <b>${fmt(u.t ? u.t : u.created_at)}</b>
+          ${esc(u.text)}
+        </div>
+      `
+    ).join('');
+
+
+    const sup = c.Service_Provider
+      ? `
+        <p
+          class="muted"
+          style="margin:10px 0"
+        >
+          🔧
+          <b>${esc(c.Service_Provider.name)}</b>
+          · 📞 ${esc(c.Service_Provider.phone)}
+          · ${c.Service_Provider.skills
+            ? esc(c.Service_Provider.skills)
+            : ''}
+        </p>
+      `
+      : '';
+
+
+    openModal(`
+      <h3>
+        ${esc(c.title)}
+
+        <span
+          class="muted"
+          style="font-size:13px"
+        >
+          ${c.ticket}
+        </span>
+      </h3>
+
+      <p class="muted">
+        ${fmt(c.created_at)}
+        · ${statusPill(c.status)}
+      </p>
+
+      <div
+        class="muted"
+        style="margin:12px 0"
+      >
+        ❓ ${esc(c.issue)}
+        <br>
+        📍 ${esc(c.location)}
+        <br>
+        ${esc(c.description)}
+      </div>
+
+      ${imgs}
+
+      ${sup}
+
+      <div class="timeline">
+        ${up}
+      </div>
+
+      <div style="margin-top:16px">
+
+        <button
+          class="btn"
+          onclick="closeModal()"
+        >
+          Close
+        </button>
+
+      </div>
+    `);
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+function previewImages(inp) {
+
+  pendingImages = [];
+
+  const box = $('#c-preview');
+
+  box.innerHTML = '';
+
+  [...inp.files]
+    .slice(0, 4)
+    .forEach(f =>
+
+      fileToDataURL(f, url => {
+
+        pendingImages.push(url);
+
+        const img =
+          document.createElement('img');
+
+        img.src = url;
+
+        box.appendChild(img);
+
+      })
+
+    );
+}
+
+
+async function submitComplaint(e) {
+
+  e.preventDefault();
+
+  try {
+
+    const d = await api('/complaints', {
+      method: 'POST',
+
+      body: {
+        title: $('#c-title').value,
+        issue: $('#c-issue').value,
+        location: $('#c-location').value,
+        description: $('#c-desc').value,
+        images: pendingImages
+      }
+    });
+
+
+    toast(
+      '✅ ' + d.complaint.ticket + ' submitted successfully!'
+    );
+
+
+    $('#c-title').value =
+      $('#c-issue').value =
+      $('#c-location').value =
+      $('#c-desc').value = '';
+
+
+    $('#c-images').value = '';
+
+    $('#c-preview').innerHTML = '';
+
+    pendingImages = [];
+
+
+    goPanel('s-track');
+
+    loadComplaints();
+
+  } catch (err) {
+
+    toast(
+      '❌ ' + err.message,
+      'err'
+    );
+
+  }
+}
+
+
+/* Rating */
+
+let ratingComplaint = null;
+let ratingVal = 0;
+
+
+function rateModal(id) {
+
+  ratingComplaint = id;
+  ratingVal = 0;
+
+
+  openModal(`
+    <h3>⭐ Rate the Service_Provider</h3>
+
+    <p class="muted">
+      How was your experience with the Service_Provider staff?
+    </p>
+
+    <div
+      style="margin:14px 0;display:flex;gap:6px"
+    >
+      ${[1,2,3,4,5].map(i =>
+        `
+          <button
+            class="star-btn"
+            id="st${i}"
+            onclick="setStar(${i})"
+          >
+            ⭐
+          </button>
+        `
+      ).join('')}
+    </div>
+
+    <div class="field">
+
+      <label>Review (optional)</label>
+
+      <textarea
+        id="rt-review"
+        rows="2"
+      ></textarea>
+
+    </div>
+
+    <button
+      class="btn-primary"
+      onclick="submitRating()"
+    >
+      Submit Rating
+    </button>
+  `);
+}
+
+
+function setStar(n) {
+
+  ratingVal = n;
+
+  [1,2,3,4,5].forEach(
+    i =>
+      $('#st' + i)
+        .classList
+        .toggle('on', i <= n)
+  );
+}
+
+
+async function submitRating() {
+
+  if (!ratingVal) {
+
+    toast(
+      '❌ Please select a star rating.',
+      'err'
+    );
+
+    return;
+  }
+
+
+  try {
+
+    await api('/ratings', {
+      method: 'POST',
+
+      body: {
+        complaint_id: ratingComplaint,
+        rating: ratingVal,
+        review: $('#rt-review').value
+      }
+    });
+
+
+    toast(
+      '✅ Thank you for your rating!'
+    );
+
+    closeModal();
+
+    loadComplaints();
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+loadComplaints();
+
+</script>
+
+</body>
+</html>

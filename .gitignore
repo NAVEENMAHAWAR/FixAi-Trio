@@ -1,0 +1,6 @@
+node_modules/
+.env
+fixai.db
+*.db
+*.db-shm
+*.db-wal

@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FixAI — Service_Provider</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+
+  <div class="brand">
+    <span class="logo">⚙</span>
+    Fix<span style="color:var(--primary)">AI</span>
+  </div>
+
+  <div class="top-actions">
+
+    <button
+      class="icon-btn"
+      id="themeBtn"
+      onclick="toggleTheme()"
+    >
+      🌙
+    </button>
+
+    <button
+      class="icon-btn"
+      onclick="loadNotifications()"
+    >
+      🔔 <span id="bellCount" class="bell-count"></span>
+    </button>
+
+    <button
+      class="icon-btn"
+      onclick="logout()"
+    >
+      ↩ Logout
+    </button>
+
+  </div>
+
+</header>
+
+
+<section id="dash-Service_Provider" class="dashboard show">
+
+  <aside class="sidebar">
+
+    <button
+      class="nav-item active"
+      data-panel="u-jobs"
+      onclick="goPanel('u-jobs');loadAll()"
+    >
+      📋 Available Complaints
+    </button>
+
+    <button
+      class="nav-item"
+      data-panel="u-apps"
+      onclick="goPanel('u-apps');loadAll()"
+    >
+      📨 My Applications
+    </button>
+
+    <button
+      class="nav-item"
+      data-panel="u-accepted"
+      onclick="goPanel('u-accepted');loadAll()"
+    >
+      ✅ Accepted Jobs
+    </button>
+
+    <button
+      class="nav-item"
+      data-panel="u-profile"
+      onclick="goPanel('u-profile');fillProfile()"
+    >
+      👤 My Profile
+    </button>
+
+    <button
+      class="nav-item"
+      data-panel="u-chat"
+      onclick="goPanel('u-chat');fillChatSelect()"
+    >
+      💬 Chat with Admin
+    </button>
+
+    <div class="user-chip">
+
+  <div
+    id="u-profile-picture"
+    style="
+      width:52px;
+      height:52px;
+      border-radius:50%;
+      overflow:hidden;
+      margin-bottom:8px;
+      background:var(--primary-soft);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      cursor:pointer;
+    "
+    onclick="openProfilePicturePicker()"
+    title="Change profile picture"
+  >
+    👤
+  </div>
+
+  <b id="u-user"></b>
+
+  <div class="muted" id="u-email"></div>
+
+  <button
+    class="btn"
+    type="button"
+    style="margin-top:8px;font-size:12px"
+    onclick="openProfilePicturePicker()"
+  >
+    📷 Change Photo
+  </button>
+
+  <button
+    class="btn"
+    id="remove-profile-picture-btn"
+    type="button"
+    style="margin-top:5px;font-size:12px;display:none"
+    onclick="removeProfilePicture()"
+  >
+    🗑 Remove Photo
+  </button>
+
+  <input
+    type="file"
+    id="profile-picture-input"
+    accept="image/jpeg,image/png,image/webp"
+    style="display:none"
+    onchange="uploadProfilePicture(event)"
+  >
+
+    </div>
+  </aside>
+
+
+  <main class="main">
+
+    <!-- AVAILABLE COMPLAINTS -->
+
+    <div class="panel show" id="panel-u-jobs">
+
+      <div class="page-head">
+        <div>
+          <h2>Available Complaints</h2>
+          <p>
+            Apply with your skills and charges. Your application will be sent directly to the admin.
+          </p>
+        </div>
+      </div>
+
+      <div id="u-jobs-list"></div>
+
+    </div>
+
+
+    <!-- MY APPLICATIONS -->
+
+    <div class="panel" id="panel-u-apps">
+
+      <div class="page-head">
+        <div>
+          <h2>My Applications</h2>
+          <p>
+            The admin will review your application. Once accepted, the job will be assigned to you.
+          </p>
+        </div>
+      </div>
+
+      <div id="u-apps-list"></div>
+
+    </div>
+
+
+    <!-- ACCEPTED JOBS -->
+
+    <div class="panel" id="panel-u-accepted">
+
+      <div class="page-head">
+        <div>
+          <h2>Accepted Jobs</h2>
+          <p>
+            Accept the job, complete the work, and receive your payment through the FixAI QR. You receive 80% of the service charge.
+          </p>
+        </div>
+      </div>
+
+      <div id="u-accepted-list"></div>
+
+    </div>
+
+
+    <!-- MY PROFILE -->
+
+    <div class="panel" id="panel-u-profile">
+
+      <div class="page-head">
+        <div>
+          <h2>My Profile</h2>
+          <p>
+            Add your skills, experience, and charges so the admin can assign suitable jobs to you.
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:640px">
+
+        <div class="field">
+          <label>Skills (comma separated)</label>
+
+          <input
+            id="p-skills"
+            placeholder="Electrician, Plumber, Networking"
+          >
+        </div>
+
+
+       <div class="card" style="max-width:640px">
+
+  <!-- PROFILE PHOTO -->
+
+  <div
+    style="
+      display:flex;
+      align-items:center;
+      gap:18px;
+      margin-bottom:22px;
+      padding-bottom:18px;
+      border-bottom:1px solid var(--border);
+    "
+  >
+
+    <div
+      id="u-profile-picture-large"
+      style="
+        width:90px;
+        height:90px;
+        min-width:90px;
+        border-radius:50%;
+        overflow:hidden;
+        background:var(--primary-soft);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:38px;
+        cursor:pointer;
+      "
+      onclick="openProfilePicturePicker()"
+      title="Change profile picture"
+    >
+      👤
+    </div>
+
+    <div>
+
+      <h3 style="margin:0 0 6px">
+        Profile Picture
+      </h3>
+
+      <p
+        class="muted"
+        style="font-size:13px;margin:0 0 10px"
+      >
+        Add a profile photo so admins can easily identify you.
+      </p>
+
+      <button
+        class="btn primary"
+        type="button"
+        onclick="openProfilePicturePicker()"
+      >
+        📷 Change Photo
+      </button>
+
+      <button
+        class="btn"
+        type="button"
+        onclick="removeProfilePicture()"
+      >
+        🗑 Remove
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div class="field">
+            <label>Experience (years)</label>
+
+            <input
+              id="p-exp"
+              type="number"
+              min="0"
+            >
+          </div>
+
+
+          <div class="field">
+            <label>Charges per job (₹)</label>
+
+            <input
+              id="p-charge"
+              type="number"
+              min="0"
+            >
+          </div>
+
+        </div>
+
+
+        <div class="field">
+
+          <label>About You / Work Style</label>
+
+          <textarea
+            id="p-note"
+            rows="3"
+            placeholder="Certified electrician, available on weekends..."
+          ></textarea>
+
+        </div>
+
+
+        <button
+          class="btn-primary"
+          onclick="saveProfile()"
+        >
+          Save Profile
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- CHAT WITH ADMIN -->
+
+    <div class="panel" id="panel-u-chat">
+
+      <div class="page-head">
+        <div>
+          <h2>Chat with Admin</h2>
+          <p>
+            Discuss pricing, timing, and any other job-related details here.
+          </p>
+        </div>
+      </div>
+
+
+      <div class="card">
+
+        <div class="field">
+
+          <label>Select a Job</label>
+
+          <select
+            id="u-chat-select"
+            onchange="openChat()"
+          ></select>
+
+        </div>
+
+
+        <div
+          class="chat-box"
+          id="u-chat-box"
+        ></div>
+
+
+        <div class="chat-input">
+
+          <input
+            id="u-chat-input"
+            placeholder="Type a message..."
+            onkeydown="if(event.key==='Enter')sendChat()"
+          >
+
+          <button
+            class="btn primary"
+            onclick="sendChat()"
+          >
+            ➤
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</section>
+
+
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+
+<script src="/js/app.js"></script>
+
+<script>
+
+const me = requireAuth(['Service_Provider']);
+
+$('#u-user').textContent = me.name;
+$('#u-email').textContent = me.email;
+
+renderServiceProviderProfilePicture(me);
+
+let all = [], myApps = [], chatComplaint = null;
+
+
+/* ==================== PROFILE PICTURE ==================== */
+
+function renderServiceProviderProfilePicture(user) {
+
+  const smallBox = $('#u-profile-picture');
+  const largeBox = $('#u-profile-picture-large');
+  const removeBtn = $('#remove-profile-picture-btn');
+
+  const picture =
+    user && user.profile_picture
+      ? user.profile_picture
+      : '';
+
+
+  if (picture) {
+
+    const imageHTML = `
+      <img
+        src="${picture}"
+        alt="Profile Picture"
+        style="
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          display:block;
+        "
+      >
+    `;
+
+    if (smallBox) {
+      smallBox.innerHTML = imageHTML;
+    }
+
+    if (largeBox) {
+      largeBox.innerHTML = imageHTML;
+    }
+
+    if (removeBtn) {
+      removeBtn.style.display = 'block';
+    }
+
+  } else {
+
+    if (smallBox) {
+      smallBox.innerHTML = '👤';
+    }
+
+    if (largeBox) {
+      largeBox.innerHTML = '👤';
+    }
+
+    if (removeBtn) {
+      removeBtn.style.display = 'none';
+    }
+
+  }
+}
+
+
+function openProfilePicturePicker() {
+
+  const input = $('#profile-picture-input');
+
+  if (input) {
+    input.click();
+  }
+
+}
+
+
+async function uploadProfilePicture(event) {
+
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+
+  const allowedTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp'
+  ];
+
+
+  if (!allowedTypes.includes(file.type)) {
+
+    toast(
+      '❌ Please select a JPG, PNG, or WEBP image.',
+      'err'
+    );
+
+    event.target.value = '';
+
+    return;
+  }
+
+
+  if (file.size > 5 * 1024 * 1024) {
+
+    toast(
+      '❌ Image must be smaller than 5 MB.',
+      'err'
+    );
+
+    event.target.value = '';
+
+    return;
+  }
+
+
+  try {
+
+    const reader = new FileReader();
+
+
+    reader.onload = async function () {
+
+      try {
+
+        const d = await api(
+          '/profile/picture',
+          {
+            method: 'PUT',
+
+            body: {
+              profile_picture: reader.result
+            }
+          }
+        );
+
+
+        if (d.user) {
+
+          me.profile_picture =
+            d.user.profile_picture || '';
+
+          localStorage.setItem(
+            'fixai_user',
+            JSON.stringify(d.user)
+          );
+
+          renderServiceProviderProfilePicture(me);
+
+        }
+
+
+        toast(
+          '✅ Profile picture updated successfully.'
+        );
+
+
+      } catch (e) {
+
+        toast(
+          '❌ ' + e.message,
+          'err'
+        );
+
+      }
+
+
+      event.target.value = '';
+
+    };
+
+
+    reader.readAsDataURL(file);
+
+
+  } catch (e) {
+
+    toast(
+      '❌ Unable to read the image.',
+      'err'
+    );
+
+    event.target.value = '';
+
+  }
+
+}
+
+
+async function removeProfilePicture() {
+
+  try {
+
+    const d = await api(
+      '/profile/picture',
+      {
+        method: 'PUT',
+
+        body: {
+          profile_picture: ''
+        }
+      }
+    );
+
+
+    if (d.user) {
+
+      me.profile_picture =
+        d.user.profile_picture || '';
+
+      localStorage.setItem(
+        'fixai_user',
+        JSON.stringify(d.user)
+      );
+
+      renderServiceProviderProfilePicture(me);
+
+    }
+
+
+    toast(
+      '✅ Profile picture removed successfully.'
+    );
+
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+
+}
+
+
+async function loadAll() {
+
+  try {
+
+    const d = await api('/complaints');
+
+    all = d.complaints;
+    myApps = d.myApplications;
+
+    render();
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+function render() {
+
+  const meId = me.id;
+
+  const available = all.filter(
+    c => ['pending', 'applied'].includes(c.status)
+  );
+
+  const jobs = all.filter(
+    c => c.assigned_to === meId && c.status !== 'paid'
+  );
+
+
+  /* Available Complaints */
+
+  $('#u-jobs-list').innerHTML = available.length
+
+    ? available.map(c => {
+
+        const applied = myApps.some(
+          a => a.complaint_id === c.id
+        );
+
+        const imgs = c.images.length
+
+          ? `
+            <div class="img-thumbs">
+              ${c.images
+                .slice(0, 3)
+                .map(i => `<img src="${i}">`)
+                .join('')}
+            </div>
+          `
+
+          : '';
+
+
+        return `
+          <div class="list-item">
+
+            <div class="info">
+
+              <div class="t">
+                ${esc(c.title)}
+
+                <span
+                  class="muted"
+                  style="font-weight:500"
+                >
+                  · ${c.ticket}
+                </span>
+              </div>
+
+
+              <div class="s">
+                ❓ ${esc(c.issue)}
+                · 📍 ${esc(c.location)}
+              </div>
+
+
+              <div class="s muted">
+                ${esc(c.description)}
+              </div>
+
+
+              ${imgs}
+
+
+              ${
+                applied
+                  ? `
+                    <span
+                      class="tag"
+                      style="margin-top:8px"
+                    >
+                      Application Submitted ✓
+                    </span>
+                  `
+                  : ''
+              }
+
+            </div>
+
+
+            ${
+              applied
+                ? ''
+
+                : `
+                  <div class="btn-row">
+
+                    <button
+                      class="btn primary"
+                      onclick="applyModal(${c.id})"
+                    >
+                      Apply
+                    </button>
+
+                    <button
+                      class="btn"
+                      onclick="viewComplaint(${c.id})"
+                    >
+                      View
+                    </button>
+
+                  </div>
+                `
+            }
+
+          </div>
+        `;
+
+      }).join('')
+
+    : `
+      <div class="card muted">
+        No open complaints available right now. 🔍
+      </div>
+    `;
+
+
+  /* My Applications */
+
+  $('#u-apps-list').innerHTML = myApps.length
+
+    ? myApps.map(a => {
+
+        const c = all.find(
+          x => x.id === a.complaint_id
+        );
+
+
+        const st =
+
+          a.status === 'pending'
+
+            ? `
+              <span
+                class="pill"
+                style="background:#fdf3e3;color:#d97706"
+              >
+                Pending Admin Review
+              </span>
+            `
+
+          : a.status === 'accepted'
+
+            ? `
+              <span
+                class="pill"
+                style="background:#e7f8ee;color:#16a34a"
+              >
+                Accepted 🎉
+              </span>
+            `
+
+          : `
+              <span
+                class="pill"
+                style="background:#feecec;color:#dc2626"
+              >
+                Rejected
+              </span>
+            `;
+
+
+        return `
+          <div class="list-item">
+
+            <div class="info">
+
+              <div class="t">
+                ${c ? esc(c.title) : a.complaint_id}
+              </div>
+
+              <div class="s">
+                Your Quote: ₹${a.charge}
+                · "${esc(a.note)}"
+              </div>
+
+              <div
+                class="s"
+                style="margin-top:6px"
+              >
+                ${st}
+              </div>
+
+            </div>
+
+          </div>
+        `;
+
+      }).join('')
+
+    : `
+      <div class="card muted">
+        No applications yet. Apply to available complaints to get started!
+      </div>
+    `;
+
+
+  /* Accepted Jobs */
+
+  $('#u-accepted-list').innerHTML = jobs.length
+
+    ? jobs.map(c => `
+
+      <div class="list-item">
+
+        <div class="info">
+
+          <div class="t">
+
+            ${esc(c.title)}
+
+            <span
+              class="muted"
+              style="font-weight:500"
+            >
+              · ${c.ticket}
+            </span>
+
+          </div>
+
+
+          <div class="s">
+
+            📍 ${esc(c.location)}
+            · ${statusPill(c.status)}
+
+          </div>
+
+
+          <div class="s muted">
+
+            ${esc(c.description)}
+
+          </div>
+
+
+          ${
+            c.rating
+
+              ? `
+                <div
+                  class="s"
+                  style="margin-top:5px"
+                >
+                  ⭐ Student Rating:
+                  ${c.rating.rating}/5
+                  — "${esc(c.rating.review)}"
+                </div>
+              `
+
+              : ''
+          }
+
+        </div>
+
+
+        <div class="btn-row">
+
+
+          ${
+            c.status === 'assigned'
+
+              ? `
+                <button
+                  class="btn primary"
+                  onclick="jobAction(${c.id},'start')"
+                >
+                  Accept & Start
+                </button>
+              `
+
+              : ''
+          }
+
+
+          ${
+            c.status === 'in_progress'
+
+              ? `
+                <button
+                  class="btn green"
+                  onclick="jobAction(${c.id},'complete')"
+                >
+                  Mark Complete
+                </button>
+              `
+
+              : ''
+          }
+
+
+          ${
+            c.status === 'completed'
+
+              ? `
+                <span
+                  class="pill"
+                  style="background:#e7f8ee;color:#16a34a"
+                >
+                  Completed — Payment Pending
+                </span>
+              `
+
+              : ''
+          }
+
+
+          ${
+            c.status === 'paid'
+
+              ? `
+                <span
+                  class="pill"
+                  style="background:#e7f8ee;color:#16a34a"
+                >
+                  Paid 💰
+                </span>
+              `
+
+              : ''
+          }
+
+
+          ${
+            c.status !== 'paid'
+
+              ? `
+                <button
+                  class="btn"
+                  onclick="startChat(${c.id})"
+                >
+                  💬 Chat
+                </button>
+              `
+
+              : ''
+          }
+
+
+        </div>
+
+      </div>
+
+    `).join('')
+
+    : `
+      <div class="card muted">
+        No accepted jobs yet. Keep applying!
+      </div>
+    `;
+}
+
+
+async function jobAction(id, action) {
+
+  try {
+
+    await api(
+      '/complaints/' + id + '/action',
+      {
+        method: 'POST',
+        body: { action }
+      }
+    );
+
+    toast('✅ Action completed successfully!');
+
+    loadAll();
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+async function viewComplaint(id) {
+
+  try {
+
+    const d = await api(
+      '/complaints/' + id
+    );
+
+    const c = d.complaint;
+
+
+    const imgs = c.images.length
+
+      ? `
+        <div class="img-thumbs">
+          ${c.images
+            .map(i => `<img src="${i}">`)
+            .join('')}
+        </div>
+      `
+
+      : '';
+
+
+    openModal(`
+
+      <h3>
+
+        ${esc(c.title)}
+
+        <span
+          class="muted"
+          style="font-size:13px"
+        >
+          ${c.ticket}
+        </span>
+
+      </h3>
+
+
+      <p class="muted">
+
+        ${fmt(c.created_at)}
+        · ${statusPill(c.status)}
+
+      </p>
+
+
+      <div
+        class="muted"
+        style="margin:12px 0"
+      >
+
+        ❓ ${esc(c.issue)}
+
+        <br>
+
+        📍 ${esc(c.location)}
+
+        <br>
+
+        ${esc(c.description)}
+
+      </div>
+
+
+      ${imgs}
+
+
+      <div style="margin-top:16px">
+
+        <button
+          class="btn"
+          onclick="closeModal()"
+        >
+          Close
+        </button>
+
+      </div>
+
+    `);
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+function applyModal(id) {
+
+  openModal(`
+
+    <h3>
+      Apply for Job
+    </h3>
+
+
+    <div class="field">
+
+      <label>Your Skills</label>
+
+      <input
+        id="ap-skills"
+        value="${esc(me.skills || '')}"
+      >
+
+    </div>
+
+
+    <div class="grid-2">
+
+      <div class="field">
+
+        <label>Experience (Years)</label>
+
+        <input
+          id="ap-exp"
+          type="number"
+          value="${me.experience || 0}"
+        >
+
+      </div>
+
+
+      <div class="field">
+
+        <label>Charges (₹)</label>
+
+        <input
+          id="ap-charge"
+          type="number"
+          value="${me.charges || 300}"
+        >
+
+      </div>
+
+    </div>
+
+
+    <div class="field">
+
+      <label>Message to Admin</label>
+
+      <textarea
+        id="ap-note"
+        rows="3"
+      >${esc(me.note || 'I can complete this job quickly.')}</textarea>
+
+    </div>
+
+
+    <button
+      class="btn-primary"
+      onclick="submitApplication(${id})"
+    >
+      Submit Application
+    </button>
+
+  `);
+}
+
+
+async function submitApplication(id) {
+
+  try {
+
+    await api(
+      '/applications',
+      {
+        method: 'POST',
+
+        body: {
+          complaint_id: id,
+          skills: $('#ap-skills').value,
+          charge: +$('#ap-charge').value,
+          note: $('#ap-note').value
+        }
+      }
+    );
+
+
+    toast(
+      '✅ Application sent to Admin successfully!'
+    );
+
+    closeModal();
+
+    loadAll();
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+/* Profile */
+
+function fillProfile() {
+
+  $('#p-skills').value =
+    me.skills || '';
+
+  $('#p-exp').value =
+    me.experience || 0;
+
+  $('#p-charge').value =
+    me.charges || 0;
+
+  $('#p-note').value =
+    me.note || '';
+}
+
+
+async function saveProfile() {
+
+  try {
+
+    const d = await api(
+      '/Service_Provider/profile',
+      {
+        method: 'PUT',
+
+        body: {
+          skills: $('#p-skills').value,
+          experience: +$('#p-exp').value,
+          charges: +$('#p-charge').value,
+          note: $('#p-note').value
+        }
+      }
+    );
+
+
+    localStorage.setItem(
+      'fixai_user',
+      JSON.stringify(d.user)
+    );
+
+
+    me.skills =
+      d.user.skills;
+
+    me.charges =
+      d.user.charges;
+
+
+    toast(
+      '✅ Profile saved successfully!'
+    );
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+/* Chat */
+
+function fillChatSelect() {
+
+  const jobs = all.filter(
+    c =>
+      c.assigned_to === me.id &&
+      !['pending', 'applied'].includes(c.status)
+  );
+
+
+  $('#u-chat-select').innerHTML = jobs.length
+
+    ? `
+      <option value="">
+        Select a job...
+      </option>
+
+      ${
+        jobs
+          .map(
+            c =>
+              `<option value="${c.id}">
+                ${c.ticket} — ${esc(c.title)}
+              </option>`
+          )
+          .join('')
+      }
+    `
+
+    : `
+      <option value="">
+        No chat jobs available
+      </option>
+    `;
+}
+
+
+async function startChat(id) {
+
+  $('#u-chat-select').value = id;
+
+  chatComplaint = id;
+
+  openChat();
+}
+
+
+async function openChat() {
+
+  chatComplaint =
+    +$('#u-chat-select').value;
+
+
+  if (!chatComplaint) {
+
+    $('#u-chat-box').innerHTML = `
+      <div
+        class="muted"
+        style="text-align:center;padding:30px"
+      >
+        Select a job to start a conversation.
+      </div>
+    `;
+
+    return;
+  }
+
+
+  try {
+
+    const d = await api(
+      '/chat/' + chatComplaint
+    );
+
+
+    $('#u-chat-box').innerHTML =
+
+      d.messages.length
+
+        ? d.messages
+            .map(
+              m =>
+                `
+                  <div
+                    class="msg ${
+                      m.sender_id === me.id
+                        ? 'mine'
+                        : 'theirs'
+                    }"
+                  >
+
+                    ${esc(m.text)}
+
+                    <small>
+                      ${fmt(m.created_at)}
+                    </small>
+
+                  </div>
+                `
+            )
+            .join('')
+
+        : `
+          <div
+            class="muted"
+            style="text-align:center;padding:30px"
+          >
+            No messages yet. Start the conversation. 👋
+          </div>
+        `;
+
+
+    $('#u-chat-box').scrollTop =
+      $('#u-chat-box').scrollHeight;
+
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+async function sendChat() {
+
+  const txt =
+    $('#u-chat-input').value.trim();
+
+
+  if (!chatComplaint || !txt) {
+    return;
+  }
+
+
+  try {
+
+    await api(
+      '/chat/' + chatComplaint,
+      {
+        method: 'POST',
+        body: {
+          text: txt
+        }
+      }
+    );
+
+
+    $('#u-chat-input').value = '';
+
+    openChat();
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
+
+
+loadAll();
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FixAI — Login</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+
+  <div class="top-actions">
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+        <span id="langLabel"></span>
+    </button>
+  </div>
+</header>
+
+<section class="auth-wrap">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <span class="logo" style="width:54px;height:54px;font-size:26px">⚙</span>
+
+      <h1>
+        Fix<span style="color:var(--primary)">AI</span>
+      </h1>
+
+      <div class="tagline" data-i18n="tagline">
+        Raise it. Track it. Get it fixed.
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tabLogin" onclick="showTab('login')">
+        Sign In
+      </button>
+
+      <button class="tab" id="tabReg" onclick="showTab('register')">
+        Create Account
+      </button>
+    </div>
+
+
+    <!-- LOGIN -->
+    <form id="login-form" onsubmit="return doLogin(event)">
+
+      <div class="field">
+        <label>Email ID</label>
+        <input
+          id="lg-email"
+          type="email"
+          placeholder="you@email.com"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input
+          id="lg-pass"
+          type="password"
+          placeholder="••••••••"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Captcha</label>
+
+        <div class="captcha-row">
+          <input
+            id="lg-captcha"
+            placeholder="Enter code"
+            style="flex:1"
+            required
+          >
+
+          <div
+            id="captcha-box"
+            onclick="loadCaptcha()"
+            title="Click to refresh"
+          ></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Login as</label>
+
+        <div class="role-group">
+
+          <div
+            class="role-box"
+            data-role="student"
+            onclick="pickRole(this)"
+          >
+            🎓 Student
+            <small>Raise & track complaints</small>
+          </div>
+
+          <div
+            class="role-box"
+            data-role="admin"
+            onclick="pickRole(this)"
+          >
+            🛡️ Admin
+            <small>Manage & assign complaints</small>
+          </div>
+
+          <div
+            class="role-box"
+            data-role="Service_Provider"
+            onclick="pickRole(this)"
+          >
+            🔧 Service_Provider
+            <small>Handle service requests</small>
+          </div>
+
+        </div>
+      </div>
+
+      <button class="btn-primary">
+        Log In
+      </button>
+
+      <div class="info-box" style="margin-top:14px">
+        🔒 Admin accounts are created only by the FixAI owner.
+        Students and Service_Provider staff must register and complete OTP verification.
+      </div>
+
+    </form>
+
+
+    <!-- REGISTER -->
+    <form
+      id="register-form"
+      onsubmit="return doRegister(event)"
+      class="hidden"
+    >
+
+      <div class="field">
+        <label>Full Name</label>
+        <input
+          id="rg-name"
+          placeholder="Rahul Sharma"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Email ID</label>
+        <input
+          id="rg-email"
+          type="email"
+          placeholder="you@email.com"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Phone</label>
+        <input
+          id="rg-phone"
+          type="tel"
+          placeholder="+91 98765 43210"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input
+          id="rg-pass"
+          type="password"
+          placeholder="Create password"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label>Register as</label>
+
+        <div class="role-group">
+
+          <div
+            class="role-box"
+            data-role="student"
+            onclick="pickRegRole(this)"
+          >
+            🎓 Student
+          </div>
+
+          <div
+            class="role-box"
+            data-role="Service_Provider"
+            onclick="pickRegRole(this)"
+          >
+            🔧 Service_Provider
+          </div>
+
+        </div>
+      </div>
+
+      <button class="btn-primary">
+        Send OTP
+      </button>
+
+    </form>
+
+
+    <!-- OTP -->
+    <div id="otp-step" class="hidden">
+
+      <h3>📩 Verify your Email</h3>
+
+      <div class="info-box">
+        An OTP has been sent to:
+        <b id="otp-email"></b>
+        — Please check your email.
+      </div>
+
+      <input
+        type="hidden"
+        id="otp-email-hidden"
+      >
+
+      <div class="field">
+        <label>Enter OTP</label>
+
+        <input
+          id="otp-input"
+          placeholder="6-digit code"
+          maxlength="6"
+          style="letter-spacing:8px;font-weight:700"
+        >
+      </div>
+
+      <button
+        class="btn-primary"
+        onclick="verifyOtp()"
+      >
+        Verify & Create Account
+      </button>
+
+      <div style="text-align:center;margin-top:12px">
+        <button
+          class="btn ghost"
+          onclick="resendOtp()"
+        >
+          Resend OTP
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script src="/js/app.js"></script>
+
+<script>
+
+let captchaId = '', role = '', regRole = '';
+
+async function loadCaptcha() {
+  try {
+    const d = await api('/captcha');
+    captchaId = d.id;
+    $('#captcha-box').innerHTML = d.svg;
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+  }
+}
+
+function showTab(name) {
+
+  $('#tabLogin').classList.toggle(
+    'active',
+    name === 'login'
+  );
+
+  $('#tabReg').classList.toggle(
+    'active',
+    name === 'register'
+  );
+
+  $('#login-form').classList.toggle(
+    'hidden',
+    name !== 'login'
+  );
+
+  $('#register-form').classList.toggle(
+    'hidden',
+    name !== 'register'
+  );
+
+  $('#otp-step').classList.add('hidden');
+
+  if (name === 'register') {
+    loadCaptcha();
+  }
+}
+
+function pickRole(el) {
+
+  $$('.role-box').forEach(
+    b => b.classList.remove('sel')
+  );
+
+  el.classList.add('sel');
+
+  role = el.dataset.role;
+}
+
+function pickRegRole(el) {
+
+  $$('#register-form .role-box').forEach(
+    b => b.classList.remove('sel')
+  );
+
+  el.classList.add('sel');
+
+  regRole = el.dataset.role;
+}
+
+async function doLogin(e) {
+
+  e.preventDefault();
+
+  if (!role) {
+    toast('❌ Please select a role to continue.', 'err');
+    return;
+  }
+
+  try {
+
+    const d = await api('/auth/login', {
+      method: 'POST',
+      body: {
+        email: $('#lg-email').value,
+        password: $('#lg-pass').value,
+        role,
+        captcha_id: captchaId,
+        captcha_answer: $('#lg-captcha').value
+      }
+    });
+
+    localStorage.setItem(
+      'fixai_token',
+      d.token
+    );
+
+    localStorage.setItem(
+      'fixai_user',
+      JSON.stringify(d.user)
+    );
+
+    toast(
+      '✅ Welcome, ' + d.user.name + '!'
+    );
+
+    setTimeout(() => {
+
+      location.href =
+        d.user.role === 'student'
+          ? '/student'
+          : d.user.role === 'Service_Provider'
+          ? '/Service_Provider'
+          : '/admin';
+
+    }, 700);
+
+  } catch (err) {
+
+    toast(
+      '❌ ' + err.message,
+      'err'
+    );
+
+    loadCaptcha();
+
+    $('#lg-captcha').value = '';
+  }
+}
+
+async function doRegister(e) {
+
+  e.preventDefault();
+
+  if (!regRole) {
+    toast(
+      '❌ Please select Student or Service_Provider.',
+      'err'
+    );
+    return;
+  }
+
+  try {
+
+    await api('/auth/register', {
+      method: 'POST',
+      body: {
+        name: $('#rg-name').value,
+        email: $('#rg-email').value,
+        phone: $('#rg-phone').value,
+        password: $('#rg-pass').value,
+        role: regRole
+      }
+    });
+
+    $('#otp-email').textContent =
+      $('#rg-email').value;
+
+    $('#otp-email-hidden').value =
+      $('#rg-email').value;
+
+    $('#otp-step').classList.remove(
+      'hidden'
+    );
+
+    $('#register-form').classList.add(
+      'hidden'
+    );
+
+    toast(
+      '📩 An OTP has been sent to your email.'
+    );
+
+  } catch (err) {
+
+    toast(
+      '❌ ' + err.message,
+      'err'
+    );
+  }
+}
+
+async function verifyOtp() {
+
+  try {
+
+    const d = await api('/auth/verify-otp', {
+      method: 'POST',
+      body: {
+        email: $('#otp-email-hidden').value,
+        otp: $('#otp-input').value
+      }
+    });
+
+    toast(
+      '✅ ' + d.message + ' Please sign in.'
+    );
+
+    showTab('login');
+
+    $('#lg-email').value =
+      $('#otp-email-hidden').value;
+
+  } catch (err) {
+
+    toast(
+      '❌ ' + err.message,
+      'err'
+    );
+  }
+}
+
+async function resendOtp() {
+
+  try {
+
+    const d = await api('/auth/resend-otp', {
+      method: 'POST',
+      body: {
+        email: $('#otp-email-hidden').value
+      }
+    });
+
+    toast(
+      '📩 ' + d.message
+    );
+
+  } catch (err) {
+
+    toast(
+      '❌ ' + err.message,
+      'err'
+    );
+  }
+}
+
+loadCaptcha();
+
+</script>
+
+</body>
+</html>
