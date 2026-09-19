@@ -567,6 +567,10 @@ async function loadAll() {
 }
 
 
+/* ===== COMPLAINTS ===== */
+
+/* ===== COMPLAINTS ===== */
+
 function renderComplaints() {
 
   const f = $('#a-filter').value;
@@ -579,7 +583,11 @@ function renderComplaints() {
   if (q) {
 
     list = list.filter(c =>
-      (c.title + c.location + c.ticket)
+      (
+        (c.title || '') +
+        (c.location || '') +
+        (c.ticket || '')
+      )
         .toLowerCase()
         .includes(q)
     );
@@ -589,60 +597,188 @@ function renderComplaints() {
   $('#a-complaints-body').innerHTML = list.length
 
     ? list.map(c => `
+
       <tr>
+
+        <!-- COMPLAINT -->
         <td>
-          <b>${esc(c.title)}</b>
+
+          <b>
+            ${esc(c.title || 'Untitled Complaint')}
+          </b>
+
           <br>
-          <span class="muted" style="font-size:12px">
-            ${c.ticket} · 📍 ${esc(c.location)}
+
+          <span
+            class="muted"
+            style="font-size:12px"
+          >
+            ${esc(c.ticket || '')}
+            · 📍 ${esc(c.location || '—')}
           </span>
+
         </td>
 
-        <td>${statusPill(c.status)}</td>
 
+        <!-- STATUS -->
         <td>
-          ${c.Service_Provider ? esc(c.Service_Provider.name) : '—'}
+          ${statusPill(c.status)}
         </td>
 
-        <td>
-          <div class="btn-row">
 
+        <!-- ASSIGNED TO -->
+        <td>
+
+          ${
+            c.Service_Provider
+
+              ? `
+                <span
+                  class="pill"
+                  style="
+                    background:var(--primary-soft);
+                    color:var(--primary);
+                  "
+                >
+                  🔧 ${esc(c.Service_Provider.name)}
+                </span>
+              `
+
+              : `
+                <span
+                  class="pill"
+                  style="
+                    background:#fff3cd;
+                    color:#856404;
+                  "
+                >
+                  ⚠ Unassigned
+                </span>
+              `
+          }
+
+        </td>
+
+
+        <!-- ACTIONS -->
+        <td>
+
+          <div
+            class="btn-row"
+            style="display:flex;gap:8px;align-items:center"
+          >
+
+            <!-- ASSIGN -->
             ${
               ['pending', 'applied'].includes(c.status)
-                ? `<button class="btn primary" onclick="assignModal(${c.id})">Assign</button>`
+
+                ? `
+                  <button
+                    class="btn primary"
+                    onclick="assignModal(${c.id})"
+                  >
+                    Assign
+                  </button>
+                `
+
                 : ''
             }
 
+
+            <!-- CHAT -->
             ${
               ['assigned', 'in_progress'].includes(c.status)
-                ? `<button class="btn" onclick="startAdminChat(${c.id})">💬</button>`
+
+                ? `
+                  <button
+                    class="btn"
+                    onclick="startAdminChat(${c.id})"
+                    title="Chat with Service Provider"
+                  >
+                    💬
+                  </button>
+                `
+
                 : ''
             }
 
+
+            <!-- UNASSIGN -->
+            ${
+              c.Service_Provider &&
+              ['assigned', 'in_progress'].includes(c.status)
+
+                ? `
+                  <button
+                    class="btn"
+                    onclick="unassignComplaint(${c.id})"
+                    title="Unassign Service Provider"
+                    style="
+                      color:#dc2626;
+                      border-color:#dc2626;
+                    "
+                  >
+                    Unassign
+                  </button>
+                `
+
+                : ''
+            }
+
+
+            <!-- PAYMENT -->
             ${
               c.status === 'completed'
-                ? `<button class="btn green" onclick="payModal(${c.id})">Pay 💳</button>`
+
+                ? `
+                  <button
+                    class="btn green"
+                    onclick="payModal(${c.id})"
+                  >
+                    Pay 💳
+                  </button>
+                `
+
                 : ''
             }
 
-            <button class="btn" onclick="viewAdmin(${c.id})">
+
+            <!-- VIEW -->
+            <button
+              class="btn"
+              onclick="viewAdmin(${c.id})"
+            >
               View
             </button>
 
           </div>
+
         </td>
+
       </tr>
+
     `).join('')
 
     : `
+
       <tr>
-        <td colspan="4" class="muted" style="text-align:center;padding:30px">
+
+        <td
+          colspan="4"
+          class="muted"
+          style="
+            text-align:center;
+            padding:30px;
+          "
+        >
           No complaints found.
         </td>
+
       </tr>
+
     `;
 }
-
+/* ==================== VIEW COMPLAINT ==================== */
 
 async function viewAdmin(id) {
 
@@ -651,53 +787,124 @@ async function viewAdmin(id) {
     const d = await api('/complaints/' + id);
     const c = d.complaint;
 
-    const imgs = c.images.length
-      ? `<div class="img-thumbs">
-          ${c.images.map(i => `<img src="${i}">`).join('')}
-        </div>`
-      : '';
+    if (!c) {
+      toast('❌ Complaint not found.', 'err');
+      return;
+    }
 
-    const up = c.updates
-      .map(u => `
-        <div>
-          <b>${fmt(u.created_at)}</b>
-          ${esc(u.text)}
-        </div>
-      `)
-      .join('');
-
-    const sup = c.Service_Provider
+    const imgs = Array.isArray(c.images) && c.images.length
       ? `
-        <p class="muted" style="margin:10px 0">
-          🔧 <b>${esc(c.Service_Provider.name)}</b>
-          · 📞 ${esc(c.Service_Provider.phone)}
-          · ⭐ ${c.Service_Provider.avg_rating || '—'}/5
-          (${c.Service_Provider.rating_count})
-        </p>
+        <div class="img-thumbs">
+          ${c.images
+            .map(i => `<img src="${esc(i)}">`)
+            .join('')}
+        </div>
       `
       : '';
 
+    const up = Array.isArray(c.updates) && c.updates.length
+      ? c.updates
+          .map(u => `
+            <div>
+              <b>${fmt(u.created_at)}</b>
+              ${esc(u.text || '')}
+            </div>
+          `)
+          .join('')
+      : `
+        <div class="muted">
+          No updates yet.
+        </div>
+      `;
+
+    const sup = c.Service_Provider
+
+      ? `
+        <p class="muted" style="margin:10px 0">
+          🔧 <b>
+            ${esc(c.Service_Provider.name)}
+          </b>
+
+          ${
+            c.Service_Provider.phone
+              ? `· 📞 ${esc(c.Service_Provider.phone)}`
+              : ''
+          }
+
+          ${
+            c.Service_Provider.avg_rating
+              ? `· ⭐ ${c.Service_Provider.avg_rating}/5`
+              : ''
+          }
+        </p>
+      `
+
+      : `
+        <p
+          style="
+            margin:10px 0;
+            padding:10px;
+            border-radius:8px;
+            background:#fff3cd;
+            color:#856404;
+          "
+        >
+          ⚠ <b>Service Provider: Unassigned</b>
+        </p>
+      `;
+
+
+    /* IMPORTANT:
+       openModal accepts ONLY ONE HTML argument.
+    */
+
     openModal(`
+
       <h3>
-        ${esc(c.title)}
-        <span class="muted" style="font-size:13px">
-          ${c.ticket}
+        ${esc(c.title || 'Complaint')}
+        <span
+          class="muted"
+          style="font-size:13px"
+        >
+          ${esc(c.ticket || '')}
         </span>
       </h3>
 
       <p class="muted">
-        ${fmt(c.created_at)} · ${statusPill(c.status)}
+        ${fmt(c.created_at)}
+        ·
+        ${statusPill(c.status)}
       </p>
 
-      <div class="muted" style="margin:12px 0">
-        ❓ ${esc(c.issue)}
+      <div
+        class="muted"
+        style="margin:12px 0"
+      >
+
+        ❓ ${esc(
+          c.issue ||
+          c.title ||
+          'No issue specified'
+        )}
+
         <br>
-        📍 ${esc(c.location)}
+
+        📍 ${esc(
+          c.location ||
+          '—'
+        )}
+
         <br>
-        ${esc(c.description)}
+
+        ${esc(
+          c.description ||
+          'No description provided.'
+        )}
+
       </div>
 
       ${imgs}
+
       ${sup}
 
       <div class="timeline">
@@ -705,15 +912,26 @@ async function viewAdmin(id) {
       </div>
 
       <div style="margin-top:16px">
-        <button class="btn" onclick="closeModal()">
+
+        <button
+          class="btn"
+          onclick="closeModal()"
+        >
           Close
         </button>
+
       </div>
+
     `);
 
   } catch (e) {
 
-    toast('❌ ' + e.message, 'err');
+    console.error('viewAdmin:', e);
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
 
   }
 }
@@ -757,23 +975,28 @@ function assignModal(id) {
 
     <div class="field">
       <label>Choose Service_Provider</label>
+<select id="assign-select">
 
-      <select id="assign-select">
-        ${
-          sorted
-            .map((s, i) => `
-              <option value="${s.id}">
-                ${esc(s.name)}
-                — ${s.experience || 0} years
-                · ₹${s.charges || 0}
-                · ⭐${s.avg_rating || '—'}
-                ${s.phone ? '📞' + esc(s.phone) : ''}
-                ${i === 0 ? ' (Recommended)' : ''}
-              </option>
-            `)
-            .join('')
-        }
-      </select>
+  <option value="">
+    ⚠ Unassigned
+  </option>
+
+  ${
+    sorted
+      .map((s, i) => `
+        <option value="${s.id}">
+          ${esc(s.name)}
+          — ${s.experience || 0} years
+          · ₹${s.charges || 0}
+          · ⭐${s.avg_rating || '—'}
+          ${s.phone ? '📞' + esc(s.phone) : ''}
+          ${i === 0 ? ' (Recommended)' : ''}
+        </option>
+      `)
+      .join('')
+  }
+
+</select>
     </div>
 
     <button class="btn-primary" onclick="doAssign(${id})">
@@ -787,25 +1010,87 @@ async function doAssign(id) {
 
   try {
 
-    const d = await api('/admin/assign', {
-      method: 'POST',
-      body: {
-        complaint_id: id,
-        Service_Provider_id: +$('#assign-select').value
-      }
-    });
+    const selected =
+      $('#assign-select').value;
 
-    toast('✅ ' + d.message);
+    const d = await api(
+      '/admin/assign',
+      {
+        method: 'POST',
+
+        body: {
+          complaint_id: id,
+
+          Service_Provider_id:
+            selected
+              ? Number(selected)
+              : null
+        }
+      }
+    );
+
+    toast(
+      '✅ ' + d.message
+    );
+
     closeModal();
-    loadAll();
+
+    await loadAll();
 
   } catch (e) {
 
-    toast('❌ ' + e.message, 'err');
+    console.error(
+      'doAssign error:',
+      e
+    );
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
 
   }
 }
 
+async function unassignComplaint(id) {
+
+  const confirmed =
+    confirm(
+      'Are you sure you want to unassign the Service Provider from this complaint?'
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+
+    const d = await api(
+      '/admin/unassign',
+      {
+        method: 'POST',
+
+        body: {
+          complaint_id: id
+        }
+      }
+    );
+
+    toast(
+      '✅ ' + d.message
+    );
+
+    await loadAll();
+
+  } catch (e) {
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
+}
 
 /* ===== APPLICATIONS ===== */
 
@@ -959,9 +1244,48 @@ function fillChatSelect() {
 
 async function startAdminChat(id) {
 
-  $('#a-chat-select').value = id;
-  openAdminChat();
+  try {
 
+    /* Open Chat & Negotiate panel */
+    goPanel('a-chat');
+
+    /* Refresh conversation list */
+    fillChatSelect();
+
+    /* Wait for the dropdown to update */
+    setTimeout(async () => {
+
+      const select = $('#a-chat-select');
+
+      if (!select) {
+        toast(
+          '❌ Chat panel not found.',
+          'err'
+        );
+        return;
+      }
+
+      /* Select this complaint */
+      select.value = String(id);
+
+      /* Load chat */
+      await openAdminChat();
+
+    }, 100);
+
+  } catch (e) {
+
+    console.error(
+      'startAdminChat error:',
+      e
+    );
+
+    toast(
+      '❌ ' + e.message,
+      'err'
+    );
+
+  }
 }
 
 
@@ -1039,68 +1363,270 @@ async function sendAdminChat() {
 
 
 /* ===== PAYMENTS ===== */
+/* ==================== PAYMENTS ==================== */
 
 function renderPayments() {
 
-  const list = complaints.filter(
-    c => ['completed', 'paid'].includes(c.status)
+  const list = complaints.filter(c =>
+    ['completed', 'paid'].includes(c.status)
   );
 
   $('#a-pay-list').innerHTML = list.length
 
     ? list.map(c => {
 
-        const amt = c.Service_Provider
-          ? Math.max(100, c.Service_Provider.charges)
-          : 500;
+        const provider =
+          c.Service_Provider || null;
 
-        const fix = Math.round(amt * 0.2);
-        const share = amt - fix;
+        const amount = Math.max(
+          100,
+          Number(
+            provider?.charges || 500
+          )
+        );
+
+        const fixaiShare =
+          Math.round(amount * 0.20);
+
+        const providerShare =
+          amount - fixaiShare;
+
+        const isPaid =
+          c.status === 'paid';
 
         return `
-          <div class="list-item">
+          <div
+            class="card"
+            style="
+              margin-bottom:12px;
+              padding:16px;
+            "
+          >
 
-            <div class="info">
+            <!-- COMPLAINT -->
+            <div
+              style="
+                display:flex;
+                justify-content:space-between;
+                gap:12px;
+                align-items:flex-start;
+              "
+            >
 
-              <div class="t">
-                ${esc(c.title)}
-                <span class="muted" style="font-weight:500">
-                  · ${c.ticket}
-                </span>
+              <div>
+
+                <b>
+                  ${esc(
+                    c.title ||
+                    'Untitled Complaint'
+                  )}
+                </b>
+
+                <div
+                  class="muted"
+                  style="
+                    font-size:12px;
+                    margin-top:4px;
+                  "
+                >
+                  ${esc(c.ticket || '')}
+                </div>
+
               </div>
 
-              <div class="s">
-                Service_Provider:
-                ${c.Service_Provider ? esc(c.Service_Provider.name) : '—'}
-                · Charge: ₹${amt}
+              <div>
+                ${statusPill(c.status)}
               </div>
+
+            </div>
+
+
+            <!-- SERVICE PROVIDER -->
+            <div
+              style="
+                margin-top:14px;
+                padding:10px;
+                border-radius:8px;
+                background:
+                  ${
+                    provider
+                      ? 'var(--primary-soft)'
+                      : '#fff3cd'
+                  };
+                color:
+                  ${
+                    provider
+                      ? 'var(--primary)'
+                      : '#856404'
+                  };
+              "
+            >
+
+              <b>🔧 Service Provider</b>
+
+              <div
+                style="
+                  margin-top:4px;
+                "
+              >
+                ${
+                  provider
+                    ? esc(
+                        provider.name ||
+                        'Service Provider'
+                      )
+                    : '⚠ Unassigned'
+                }
+              </div>
+
+            </div>
+
+
+            <!-- PAYMENT BREAKDOWN -->
+            <div
+              style="
+                display:grid;
+                grid-template-columns:
+                  repeat(
+                    auto-fit,
+                    minmax(140px, 1fr)
+                  );
+                gap:10px;
+                margin-top:14px;
+              "
+            >
+
+              <div
+                style="
+                  padding:10px;
+                  border:1px solid var(--border);
+                  border-radius:8px;
+                "
+              >
+                <div
+                  class="muted"
+                  style="font-size:12px;"
+                >
+                  Total Amount
+                </div>
+
+                <b>
+                  ₹${amount}
+                </b>
+              </div>
+
+
+              <div
+                style="
+                  padding:10px;
+                  border:1px solid var(--border);
+                  border-radius:8px;
+                "
+              >
+                <div
+                  class="muted"
+                  style="font-size:12px;"
+                >
+                  FixAI Commission
+                </div>
+
+                <b>
+                  ₹${fixaiShare}
+                  <span
+                    class="muted"
+                    style="font-size:11px;"
+                  >
+                    (20%)
+                  </span>
+                </b>
+              </div>
+
+
+              <div
+                style="
+                  padding:10px;
+                  border:1px solid var(--border);
+                  border-radius:8px;
+                "
+              >
+                <div
+                  class="muted"
+                  style="font-size:12px;"
+                >
+                  Service Provider
+                </div>
+
+                <b>
+                  ₹${providerShare}
+                  <span
+                    class="muted"
+                    style="font-size:11px;"
+                  >
+                    (80%)
+                  </span>
+                </b>
+              </div>
+
+            </div>
+
+
+            <!-- ACTION -->
+            <div
+              style="
+                margin-top:14px;
+                display:flex;
+                justify-content:flex-end;
+                gap:8px;
+              "
+            >
 
               ${
-                c.payment
+                !isPaid && provider
                   ? `
-                    <div class="s" style="margin-top:5px">
-                      ${statusPill('paid')}
-                      — FixAI ₹${c.payment.fixai_share}
-                      · Service_Provider ₹${c.payment.Service_Provider_share}
-                    </div>
+                    <button
+                      class="btn green"
+                      onclick="payModal(${c.id})"
+                    >
+                      💳 Process Payment
+                    </button>
+                  `
+                  : ''
+              }
+
+              ${
+                !isPaid && !provider
+                  ? `
+                    <span
+                      class="muted"
+                      style="
+                        font-size:12px;
+                        align-self:center;
+                      "
+                    >
+                      Assign a Service Provider
+                      before payment.
+                    </span>
+                  `
+                  : ''
+              }
+
+              ${
+                isPaid
+                  ? `
+                    <span
+                      class="pill"
+                      style="
+                        background:#d1e7dd;
+                        color:#0f5132;
+                      "
+                    >
+                      ✓ Payment Completed
+                    </span>
                   `
                   : ''
               }
 
             </div>
-
-            ${
-              c.status === 'completed'
-                ? `
-                  <button
-                    class="btn green"
-                    onclick="payModal(${c.id})"
-                  >
-                    Pay via QR 💳
-                  </button>
-                `
-                : ''
-            }
 
           </div>
         `;
@@ -1108,108 +1634,216 @@ function renderPayments() {
       }).join('')
 
     : `
-      <div class="card muted">
-        No completed jobs awaiting payment.
+      <div
+        class="card"
+        style="
+          text-align:center;
+          padding:30px;
+        "
+      >
+        <div
+          style="
+            font-size:28px;
+            margin-bottom:8px;
+          "
+        >
+          💳
+        </div>
+
+        <div class="muted">
+          No payment records found.
+        </div>
       </div>
     `;
 }
 
 
+/* ==================== PAYMENT MODAL ==================== */
+
 function payModal(id) {
 
   const c = complaints.find(
-    x => x.id === id
+    x => Number(x.id) === Number(id)
   );
 
-  const amt = c.Service_Provider
-    ? Math.max(100, c.Service_Provider.charges)
-    : 500;
+  if (!c) {
+    toast(
+      '❌ Complaint not found.',
+      'err'
+    );
+    return;
+  }
 
-  const fix = Math.round(amt * 0.2);
+  if (!c.Service_Provider) {
+    toast(
+      '❌ No Service Provider is assigned yet.',
+      'err'
+    );
+    return;
+  }
+
+  const amt = Math.max(
+    100,
+    Number(
+      c.Service_Provider.charges || 0
+    )
+  );
+
+  const fix = Math.round(
+    amt * 0.20
+  );
+
   const share = amt - fix;
 
+
+  /* IMPORTANT:
+     openModal() gets ONLY ONE argument.
+  */
+
   openModal(`
-    <h3>💳 Payment — ${c.ticket}</h3>
+
+    <h3>
+      💳 Payment — ${esc(c.ticket)}
+    </h3>
 
     <p class="muted">
-      ${esc(c.title)}
+      ${esc(c.title || 'Complaint')}
     </p>
 
-    <div class="qr-placeholder">
-      <div style="font-size:52px">
-        ◼️▫️◼️
-      </div>
 
-      <span
-        style="font-size:12px;font-weight:700;color:var(--primary)"
+    <!-- QR CODE -->
+
+    <div
+      style="
+        text-align:center;
+        padding:18px;
+        margin-top:12px;
+        border:1px solid var(--border);
+        border-radius:14px;
+        background:var(--card);
+      "
+    >
+
+      <img
+        src="/images/fixai-qr.png"
+        alt="FixAI Payment QR"
+        style="
+          width:220px;
+          height:220px;
+          object-fit:contain;
+          display:block;
+          margin:0 auto 12px;
+          border-radius:10px;
+        "
+        onerror="
+          this.style.display='none';
+          this.nextElementSibling.style.display='block';
+        "
       >
-        FixAI QR — Scan and Pay
-      </span>
-    </div>
 
-    <div class="pay-break">
+      <div
+        style="
+          display:none;
+          color:#b02a37;
+          padding:10px;
+        "
+      >
+        ❌ QR image not found.
 
-      <div>
-        <span>Job Charge</span>
-        <b>₹${amt}</b>
-      </div>
+        <br>
 
-      <div>
-        <span>FixAI Commission (20%)</span>
-        <b>₹${fix}</b>
-      </div>
+        Check:
 
-      <div class="total">
-        <span>Service_Provider Receives (80%)</span>
-        <b style="color:var(--green)">
-          ₹${share}
+        <br>
+
+        <b>
+          public/images/fixai-qr.png
         </b>
       </div>
 
+      <b
+        style="
+          color:var(--primary);
+        "
+      >
+        FixAI Owner Payment QR
+      </b>
+
+      <div
+        class="muted"
+        style="
+          font-size:12px;
+          margin-top:5px;
+        "
+      >
+        Scan this QR to make the payment.
+      </div>
+
     </div>
+
+
+    <!-- PAYMENT BREAKDOWN -->
+
+    <div
+      class="pay-break"
+      style="margin-top:15px"
+    >
+
+      <div>
+        <span>
+          Job Charge
+        </span>
+
+        <b>
+          ₹${amt}
+        </b>
+      </div>
+
+
+      <div>
+        <span>
+          FixAI Commission (20%)
+        </span>
+
+        <b>
+          ₹${fix}
+        </b>
+      </div>
+
+
+      <div class="total">
+
+        <span>
+          Service Provider Receives (80%)
+        </span>
+
+        <b
+          style="
+            color:var(--green);
+          "
+        >
+          ₹${share}
+        </b>
+
+      </div>
+
+    </div>
+
+
+    <!-- CONFIRM -->
 
     <button
       class="btn-primary"
-      style="margin-top:14px"
+      style="
+        margin-top:14px;
+      "
       onclick="markPaid(${id})"
     >
-      Confirm Payment
+      ✅ Confirm Payment
     </button>
+
   `);
 }
-
-
-async function markPaid(id) {
-
-  try {
-
-    const d = await api(
-      '/payments/mark-paid',
-      {
-        method: 'POST',
-        body: {
-          complaint_id: id
-        }
-      }
-    );
-
-    toast(
-      '✅ Payment confirmed! FixAI ₹' +
-      d.fixai_share +
-      ' · Service_Provider ₹' +
-      d.Service_Provider_share
-    );
-
-    closeModal();
-    loadAll();
-
-  } catch (e) {
-
-    toast('❌ ' + e.message, 'err');
-
-  }
-}
-
 
 /* ===== OWNER: ADMIN MANAGEMENT ===== */
 

@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS payments(
  amount INTEGER NOT NULL,
  fixai_share INTEGER NOT NULL,
  Service_Provider_share INTEGER NOT NULL,
+ qr_code TEXT DEFAULT '',
  created_at INTEGER
 );
 
@@ -338,12 +339,56 @@ function migrateUsersTable() {
 }
 
 migrateUsersTable();
+/* ==================== DATABASE MIGRATION ==================== */
 
+function addColumnIfMissing(table, column, definition) {
+
+  const columns = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .map(row => row.name);
+
+  if (!columns.includes(column)) {
+
+    db.exec(`
+      ALTER TABLE ${table}
+      ADD COLUMN ${column} ${definition}
+    `);
+
+    console.log(
+      `✅ Database updated: ${table}.${column}`
+    );
+  }
+}
+
+
+/* Service Provider ID migrations */
+
+addColumnIfMissing(
+  'applications',
+  'Service_Provider_id',
+  'INTEGER DEFAULT 0'
+);
+
+addColumnIfMissing(
+  'ratings',
+  'Service_Provider_id',
+  'INTEGER DEFAULT 0'
+);
+
+
+/* Payment QR migration */
+
+addColumnIfMissing(
+  'payments',
+  'qr_code',
+  "TEXT DEFAULT ''"
+);
 
 /* ==================== SEED OWNER ==================== */
 
 
-/* ==================== SEED OWNER ==================== */
+ 
 
 const OWNER_EMAIL = (process.env.OWNER_EMAIL || '').toLowerCase();
 
@@ -2065,6 +2110,85 @@ app.get(
   }
 );
 
+/* ==================== UNASSIGN SERVICE PROVIDER ==================== */
+
+app.post(
+  '/api/admin/unassign',
+  auth(['admin', 'owner']),
+  async (req, res) => {
+
+    const complaintId =
+      +req.body.complaint_id;
+
+    const complaint =
+      db.prepare(
+        'SELECT * FROM complaints WHERE id=?'
+      ).get(complaintId);
+
+    if (!complaint) {
+      return fail(
+        res,
+        404,
+        'Complaint not found.'
+      );
+    }
+
+    if (!complaint.assigned_to) {
+      return fail(
+        res,
+        400,
+        'This complaint is already unassigned.'
+      );
+    }
+
+    const oldServiceProvider =
+      db.prepare(
+        'SELECT * FROM users WHERE id=?'
+      ).get(
+        complaint.assigned_to
+      );
+
+    /* Remove Service Provider assignment */
+    db.prepare(`
+      UPDATE complaints
+      SET assigned_to=NULL,
+          status='pending'
+      WHERE id=?
+    `).run(
+      complaint.id
+    );
+
+    /* Add complaint history */
+    addUpdate(
+      complaint.id,
+      'Service Provider assignment removed. Complaint is now Unassigned.'
+    );
+
+    /* Notify previous Service Provider */
+    if (oldServiceProvider) {
+
+      notify(
+        oldServiceProvider.id,
+        '⚠️ Your assignment for ' +
+        complaint.ticket +
+        ' has been removed by the admin.'
+      );
+    }
+
+    /* Notify admins */
+    notifyAdmins(
+      '📌 ' +
+      complaint.ticket +
+      ' is now Unassigned.'
+    );
+
+    ok(res, {
+      message:
+        'Service Provider unassigned successfully.'
+    });
+  }
+);
+
 
 /* ==================== CREATE ADMIN ==================== */
 
@@ -2441,6 +2565,16 @@ app.post(
 
 /* ==================== PAYMENTS ==================== */
 
+/*
+  FixAI Payment Flow:
+
+  1. Service Provider completes the job.
+  2. Admin/Owner handles the payment.
+  3. FixAI QR is used for payment.
+  4. FixAI keeps 20%.
+  5. Service Provider gets 80%.
+*/
+
 app.post(
   '/api/payments/mark-paid',
   auth(['admin', 'owner']),
@@ -2461,10 +2595,7 @@ app.post(
       );
     }
 
-    if (
-      complaint.status !==
-      'completed'
-    ) {
+    if (complaint.status !== 'completed') {
       return fail(
         res,
         400,
@@ -2472,22 +2603,52 @@ app.post(
       );
     }
 
+    /*
+      Service Provider MUST be assigned
+      before payment.
+    */
+
+    if (!complaint.assigned_to) {
+      return fail(
+        res,
+        400,
+        'No Service Provider is assigned to this complaint.'
+      );
+    }
+
     const serviceProvider =
-      complaint.assigned_to
-        ? db.prepare(
-            'SELECT * FROM users WHERE id=?'
-          ).get(
-            complaint.assigned_to
-          )
-        : null;
+      db.prepare(
+        'SELECT * FROM users WHERE id=? AND role=?'
+      ).get(
+        complaint.assigned_to,
+        'Service_Provider'
+      );
+
+    if (!serviceProvider) {
+      return fail(
+        res,
+        404,
+        'Assigned Service Provider not found.'
+      );
+    }
+
+    /*
+      Payment amount comes from
+      Service Provider charges.
+
+      Minimum payment = ₹100
+    */
 
     const amount =
-      serviceProvider
-        ? Math.max(
-            100,
-            serviceProvider.charges
-          )
-        : 500;
+      Math.max(
+        100,
+        Number(serviceProvider.charges || 0)
+      );
+
+    /*
+      FixAI = 20%
+      Service Provider = 80%
+    */
 
     const fixaiShare =
       Math.round(
@@ -2496,6 +2657,10 @@ app.post(
 
     const serviceProviderShare =
       amount - fixaiShare;
+
+    /*
+      Mark complaint as paid
+    */
 
     db.prepare(`
       UPDATE complaints
@@ -2506,22 +2671,32 @@ app.post(
       complaint.id
     );
 
+    /*
+      Save payment record
+    */
+
     db.prepare(`
       INSERT INTO payments(
         complaint_id,
         amount,
         fixai_share,
         Service_Provider_share,
+        qr_code,
         created_at
       )
-      VALUES(?,?,?,?,?)
+      VALUES(?,?,?,?,?,?)
     `).run(
       complaint.id,
       amount,
       fixaiShare,
       serviceProviderShare,
+      req.body.qr_code || '',
       Date.now()
     );
+
+    /*
+      Add complaint update
+    */
 
     addUpdate(
       complaint.id,
@@ -2532,34 +2707,50 @@ app.post(
       ' (80%)'
     );
 
-    if (serviceProvider) {
+    /*
+      Notify Service Provider
+    */
 
-      notify(
-        serviceProvider.id,
-        '💰 Payment received: ₹' +
-        serviceProviderShare +
-        ' for ' +
-        complaint.ticket +
-        ' (80% after FixAI 20% commission)'
-      );
+    notify(
+      serviceProvider.id,
+      '💰 Payment received: ₹' +
+      serviceProviderShare +
+      ' for ' +
+      complaint.ticket +
+      ' (80% after FixAI 20% commission)'
+    );
 
-      await sendMail(
-        serviceProvider.email,
-        'FixAI - Payment Received',
-        `
-          <p>
-            ₹<b>${serviceProviderShare}</b>
-            has been recorded as your payment
-            for ${complaint.ticket}.
-          </p>
+    /*
+      Email Service Provider
+    */
 
-          <p>
-            FixAI commission:
-            ₹${fixaiShare} (20%)
-          </p>
-        `
-      );
-    }
+    await sendMail(
+      serviceProvider.email,
+      'FixAI - Payment Received',
+      `
+        <p>
+          ₹<b>${serviceProviderShare}</b>
+          has been recorded as your payment
+          for <b>${complaint.ticket}</b>.
+        </p>
+
+        <p>
+          Total amount: ₹${amount}
+        </p>
+
+        <p>
+          FixAI commission: ₹${fixaiShare} (20%)
+        </p>
+
+        <p>
+          Service Provider share: ₹${serviceProviderShare} (80%)
+        </p>
+      `
+    );
+
+    /*
+      Notify FixAI Owner
+    */
 
     const owner =
       db.prepare(
@@ -2577,15 +2768,21 @@ app.post(
       );
     }
 
+    /*
+      Response
+    */
+
     ok(res, {
+      message: 'Payment marked successfully.',
+      amount,
       fixai_share: fixaiShare,
       Service_Provider_share:
-        serviceProviderShare
+        serviceProviderShare,
+      qr_code:
+        req.body.qr_code || ''
     });
   }
 );
-
-
 /* ==================== NOTIFICATIONS ==================== */
 
 app.get(
