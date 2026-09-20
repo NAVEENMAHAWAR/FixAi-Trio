@@ -13,10 +13,25 @@ const app = express();
 app.use(express.json({ limit: '8mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'fixai',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString()
+  });
+});
+
 
 /* ==================== DATABASE ==================== */
 
-const db = new Database(process.env.DB_PATH || 'fixai.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'fixai.db');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
 
@@ -2854,7 +2869,7 @@ const serviceProviderFile =
       );
 
 app.get(
-  '/Service_Provider',
+  ['/Service_Provider', '/service_provider', '/service-provider', '/support'],
   (req, res) =>
     res.sendFile(serviceProviderFile)
 );
@@ -2894,6 +2909,10 @@ function startServer(port) {
 
   server.on('error', err => {
     if (err.code === 'EADDRINUSE') {
+      if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+        console.error(`Port ${port} is already in use in production. Exiting.`);
+        process.exit(1);
+      }
       const nextPort = port + 1;
       console.warn(
         `Port ${port} is already in use. Retrying on ${nextPort}...`
