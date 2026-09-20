@@ -505,7 +505,6 @@ The team is working on building a practical hostel maintenance platform that con
 
 Current development areas include:
 
-* 🤖 AI complaint analysis
 * 🏠 Complaint management
 * 👨‍🔧 Service-provider management
 * 💬 Chat and communication
