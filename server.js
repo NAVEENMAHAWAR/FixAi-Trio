@@ -2354,6 +2354,29 @@ app.post(
 );
 
 
+/* ==================== DELETE USER ==================== */
+
+app.post(
+  '/api/admin/delete-user',
+  auth(['owner', 'admin']),
+  (req, res) => {
+    const mail = (req.body.email || '').toLowerCase().trim();
+    if (!mail) {
+      return fail(res, 400, 'Email is required.');
+    }
+    const user = db.prepare('SELECT id, role FROM users WHERE email=?').get(mail);
+    if (!user) {
+      return fail(res, 404, 'User not found.');
+    }
+    if (user.role === 'owner') {
+      return fail(res, 403, 'Cannot delete the owner account.');
+    }
+    db.prepare('DELETE FROM users WHERE id=?').run(user.id);
+    ok(res, { message: `Account ${mail} has been successfully deleted.` });
+  }
+);
+
+
 /* ==================== CHAT ==================== */
 
 app.get(
